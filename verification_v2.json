@@ -1,0 +1,334 @@
+{
+  "cm": {
+    "expected_group": "cm",
+    "n_verified": 1,
+    "n_total": 30,
+    "pass_rate": 0.03333333333333333,
+    "avg_confidence": 0.6178768284966962,
+    "symmetry_stats": {
+      "reflection_v": {
+        "mean": 0.7719490308433817,
+        "std": 0.2425400324156115,
+        "pass_rate": 0.5333333333333333
+      },
+      "glide_v": {
+        "mean": 0.46380462615001067,
+        "std": 0.19601783520355112,
+        "pass_rate": 0.13333333333333333
+      }
+    }
+  },
+  "cmm": {
+    "expected_group": "cmm",
+    "n_verified": 4,
+    "n_total": 30,
+    "pass_rate": 0.13333333333333333,
+    "avg_confidence": 0.7331161467752214,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.6506133246457139,
+        "std": 0.3607123609968209,
+        "pass_rate": 0.5
+      },
+      "reflection_h": {
+        "mean": 0.798224849739247,
+        "std": 0.23839804852531307,
+        "pass_rate": 0.6333333333333333
+      },
+      "reflection_v": {
+        "mean": 0.750510265940703,
+        "std": 0.2798506763903546,
+        "pass_rate": 0.5666666666666667
+      }
+    }
+  },
+  "p1": {
+    "expected_group": "p1",
+    "n_verified": 10,
+    "n_total": 30,
+    "pass_rate": 0.3333333333333333,
+    "avg_confidence": 1.0,
+    "symmetry_stats": {}
+  },
+  "p2": {
+    "expected_group": "p2",
+    "n_verified": 2,
+    "n_total": 30,
+    "pass_rate": 0.06666666666666667,
+    "avg_confidence": 0.40141778111385873,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.40141778111385873,
+        "std": 0.23307652260411127,
+        "pass_rate": 0.16666666666666666
+      }
+    }
+  },
+  "p3": {
+    "expected_group": "p3",
+    "n_verified": 0,
+    "n_total": 30,
+    "pass_rate": 0.0,
+    "avg_confidence": 0.4665335021917519,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.4665335021917519,
+        "std": 0.08276522275315633,
+        "pass_rate": 0.03333333333333333
+      }
+    }
+  },
+  "p31m": {
+    "expected_group": "p31m",
+    "n_verified": 0,
+    "n_total": 30,
+    "pass_rate": 0.0,
+    "avg_confidence": 0.6427609981495731,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.6016867924487965,
+        "std": 0.20088439541719827,
+        "pass_rate": 0.36666666666666664
+      },
+      "reflection_hex": {
+        "mean": 0.6838352038503498,
+        "std": 0.16724886508810666,
+        "pass_rate": 0.4666666666666667
+      }
+    }
+  },
+  "p3m1": {
+    "expected_group": "p3m1",
+    "n_verified": 0,
+    "n_total": 30,
+    "pass_rate": 0.0,
+    "avg_confidence": 0.6110048536180206,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.566026402481292,
+        "std": 0.1946656555441687,
+        "pass_rate": 0.3
+      },
+      "reflection_hex": {
+        "mean": 0.6559833047547492,
+        "std": 0.15273720841775262,
+        "pass_rate": 0.5
+      }
+    }
+  },
+  "p4": {
+    "expected_group": "p4",
+    "n_verified": 1,
+    "n_total": 30,
+    "pass_rate": 0.03333333333333333,
+    "avg_confidence": 0.5791091089186485,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.5791091089186485,
+        "std": 0.19654658297348734,
+        "pass_rate": 0.26666666666666666
+      }
+    }
+  },
+  "p4g": {
+    "expected_group": "p4g",
+    "n_verified": 0,
+    "n_total": 30,
+    "pass_rate": 0.0,
+    "avg_confidence": 0.5117773929146296,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.48623015828644434,
+        "std": 0.10697658112133943,
+        "pass_rate": 0.06666666666666667
+      },
+      "reflection_d1": {
+        "mean": 0.5583204935038992,
+        "std": 0.21522616805660033,
+        "pass_rate": 0.3
+      },
+      "reflection_d2": {
+        "mean": 0.6218869899612282,
+        "std": 0.19114172609318703,
+        "pass_rate": 0.3333333333333333
+      },
+      "glide_h": {
+        "mean": 0.4193210485343709,
+        "std": 0.14116578839306265,
+        "pass_rate": 0.03333333333333333
+      },
+      "glide_v": {
+        "mean": 0.4731282742872057,
+        "std": 0.16125181215811016,
+        "pass_rate": 0.06666666666666667
+      }
+    }
+  },
+  "p4m": {
+    "expected_group": "p4m",
+    "n_verified": 2,
+    "n_total": 30,
+    "pass_rate": 0.06666666666666667,
+    "avg_confidence": 0.6226288178779498,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.5721155853729115,
+        "std": 0.115296361588551,
+        "pass_rate": 0.2
+      },
+      "reflection_h": {
+        "mean": 0.6423202971780871,
+        "std": 0.13723308268184128,
+        "pass_rate": 0.3333333333333333
+      },
+      "reflection_v": {
+        "mean": 0.6444022663045706,
+        "std": 0.12832484571664723,
+        "pass_rate": 0.3
+      },
+      "reflection_d1": {
+        "mean": 0.671052593383312,
+        "std": 0.17875961071300744,
+        "pass_rate": 0.4666666666666667
+      },
+      "reflection_d2": {
+        "mean": 0.5832533471508676,
+        "std": 0.12347324853641581,
+        "pass_rate": 0.13333333333333333
+      }
+    }
+  },
+  "p6": {
+    "expected_group": "p6",
+    "n_verified": 0,
+    "n_total": 30,
+    "pass_rate": 0.0,
+    "avg_confidence": 0.6327234669626437,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.6327234669626437,
+        "std": 0.18448667642756814,
+        "pass_rate": 0.4
+      }
+    }
+  },
+  "p6m": {
+    "expected_group": "p6m",
+    "n_verified": 9,
+    "n_total": 30,
+    "pass_rate": 0.3,
+    "avg_confidence": 0.6715031196129909,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.6684830517620628,
+        "std": 0.20644259377449328,
+        "pass_rate": 0.4666666666666667
+      },
+      "reflection_hex": {
+        "mean": 0.6745231874639189,
+        "std": 0.13903710169246877,
+        "pass_rate": 0.4666666666666667
+      }
+    }
+  },
+  "pg": {
+    "expected_group": "pg",
+    "n_verified": 0,
+    "n_total": 30,
+    "pass_rate": 0.0,
+    "avg_confidence": 0.440745117045968,
+    "symmetry_stats": {
+      "glide_v": {
+        "mean": 0.440745117045968,
+        "std": 0.14230076253748003,
+        "pass_rate": 0.03333333333333333
+      }
+    }
+  },
+  "pgg": {
+    "expected_group": "pgg",
+    "n_verified": 0,
+    "n_total": 30,
+    "pass_rate": 0.0,
+    "avg_confidence": 0.4043313854486998,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.3972888117087683,
+        "std": 0.1813472226932036,
+        "pass_rate": 0.06666666666666667
+      },
+      "glide_h": {
+        "mean": 0.4102172821457005,
+        "std": 0.09213882195996273,
+        "pass_rate": 0.0
+      },
+      "glide_v": {
+        "mean": 0.4054880624916305,
+        "std": 0.11552024419146267,
+        "pass_rate": 0.0
+      }
+    }
+  },
+  "pm": {
+    "expected_group": "pm",
+    "n_verified": 15,
+    "n_total": 30,
+    "pass_rate": 0.5,
+    "avg_confidence": 0.7490105417363998,
+    "symmetry_stats": {
+      "reflection_v": {
+        "mean": 0.7490105417363998,
+        "std": 0.2681009295049559,
+        "pass_rate": 0.5666666666666667
+      }
+    }
+  },
+  "pmg": {
+    "expected_group": "pmg",
+    "n_verified": 0,
+    "n_total": 30,
+    "pass_rate": 0.0,
+    "avg_confidence": 0.4879468696276375,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.3229520105604346,
+        "std": 0.1587707909209089,
+        "pass_rate": 0.0
+      },
+      "reflection_v": {
+        "mean": 0.7709644948108373,
+        "std": 0.25209905266604077,
+        "pass_rate": 0.5333333333333333
+      },
+      "glide_h": {
+        "mean": 0.36992410351164057,
+        "std": 0.16050820137815375,
+        "pass_rate": 0.03333333333333333
+      }
+    }
+  },
+  "pmm": {
+    "expected_group": "pmm",
+    "n_verified": 1,
+    "n_total": 30,
+    "pass_rate": 0.03333333333333333,
+    "avg_confidence": 0.7139658566863394,
+    "symmetry_stats": {
+      "rotation": {
+        "mean": 0.6257602924007333,
+        "std": 0.31714655129924274,
+        "pass_rate": 0.43333333333333335
+      },
+      "reflection_h": {
+        "mean": 0.7844558759344996,
+        "std": 0.21955980786251414,
+        "pass_rate": 0.6
+      },
+      "reflection_v": {
+        "mean": 0.7316814017237856,
+        "std": 0.27104948074434865,
+        "pass_rate": 0.5
+      }
+    }
+  }
+}

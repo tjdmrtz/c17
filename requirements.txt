@@ -1,0 +1,36 @@
+# Cristalography Pattern Generation & VAE
+# Core dependencies
+numpy>=1.24.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Deep Learning
+torch>=2.0.0
+torch-geometric>=2.3.0
+torchvision>=0.15.0
+
+# Image processing
+Pillow>=9.5.0
+scikit-image>=0.21.0
+
+# Data handling
+h5py>=3.8.0
+pandas>=2.0.0
+
+# Progress bars and utilities
+tqdm>=4.65.0
+rich>=13.0.0
+
+# Visualization
+plotly>=5.14.0
+
+# TensorBoard
+tensorboard>=2.12.0
+
+# Dimensionality reduction
+scikit-learn>=1.2.0
+
+# Testing
+pytest>=7.3.0
+
