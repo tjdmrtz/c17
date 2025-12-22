@@ -11,7 +11,6 @@ Technical documentation for the Crystallographic Pattern Generator.
 | [Architecture](ARCHITECTURE.md) | System design, data flow, model components | Developers |
 | [API Reference](API_REFERENCE.md) | Scripts, modules, function documentation | Developers |
 | [Wallpaper Groups Math](WALLPAPER_GROUPS_MATH.md) | Mathematical foundations of the 17 groups | Researchers |
-| [Neural ODE Plan](NEURAL_ODE_IMPLEMENTATION_PLAN.md) | Implementation plan (reference) | Developers |
 | [Jupyter Guide](Wallpaper_Groups_Guide.ipynb) | Interactive tutorial | Learners |
 
 ---

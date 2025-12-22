@@ -400,7 +400,6 @@ src/
 │   ├── __init__.py
 │   ├── vae_simple_rgb.py         # SimpleVAE, SimpleVAEConfig
 │   ├── flow_matching_transition.py  # FlowMatchingTransition
-│   ├── neural_ode_transition.py  # NeuralODETransition (alternative)
 │   ├── vae.py                    # Legacy VAE
 │   └── trainer.py                # Training utilities
 │

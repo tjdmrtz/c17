@@ -90,22 +90,6 @@ output/simple_vae_YYYYMMDD_HHMMSS/
 
 ---
 
-### `scripts/train_neural_ode_transitions.py`
-
-**Alternative: Train Neural ODE for transitions (slower, less stable).**
-
-```bash
-python scripts/train_neural_ode_transitions.py \
-    --vae-checkpoint <path>     # Path to trained VAE
-    --epochs 100                # Number of epochs
-    --batch-size 64             # Batch size
-    --lr 1e-3                   # Learning rate
-    --solver dopri5             # ODE solver
-    --use-adjoint               # Use adjoint method for memory efficiency
-```
-
----
-
 ## 2. Data Generation Scripts
 
 ### `scripts/generate_colored_dataset.py`
@@ -369,27 +353,6 @@ metrics = FlowMatchingMetrics.compute_metrics(
 )
 # Returns: {'endpoint_mse': float, 'smoothness': float, 
 #           'path_length': float, 'straightness': float}
-```
-
----
-
-### `src.models.neural_ode_transition`
-
-**Alternative: Neural ODE for transitions (legacy).**
-
-```python
-from src.models.neural_ode_transition import NeuralODETransition
-
-model = NeuralODETransition(
-    latent_dim=64,
-    hidden_dim=256,
-    embedding_dim=32,
-    use_adjoint=True,
-    solver='dopri5',
-)
-
-# Similar API to FlowMatchingTransition
-trajectory = model(z_start, source_idx, target_idx, n_steps=50)
 ```
 
 ---

@@ -191,9 +191,9 @@ Input: [B, 3, 256, 256] → Encoder → Latent [B, 64] → Decoder → Output: [
 
 | Document | Description |
 |----------|-------------|
-| [Architecture](docs/ARCHITECTURE.md) | System design and data flow |
+| [Architecture](docs/ARCHITECTURE.md) | System design, models, data flow |
 | [API Reference](docs/API_REFERENCE.md) | Scripts and modules |
-| [Wallpaper Groups Math](docs/WALLPAPER_GROUPS_MATH.md) | Mathematical background |
+| [Wallpaper Groups Math](docs/WALLPAPER_GROUPS_MATH.md) | Mathematical foundations |
 
 ---
 
