@@ -1,6 +1,6 @@
-# 📚 API Reference
+# API Reference
 
-Complete reference for all scripts and modules in the Crystallographic Pattern Generator.
+Reference for scripts and modules in the Crystallographic Pattern Generator.
 
 ---
 

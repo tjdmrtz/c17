@@ -1,6 +1,6 @@
-# 🏗️ System Architecture
+# System Architecture
 
-This document describes the complete architecture of the Crystallographic Pattern Generator and Phase Transition system.
+Architecture of the Crystallographic Pattern Generator and Phase Transition system.
 
 ---
 
@@ -419,15 +419,8 @@ src/
 
 ## Summary
 
-This architecture enables:
-
-1. **Mathematically correct** pattern generation for all 17 wallpaper groups
-2. **Compact latent representations** via VAE (256×256×3 → 64 dimensions)
-3. **Continuous phase transitions** via Flow Matching (any group → any group)
-4. **Real-time monitoring** via dashboard with live visualizations
-
-The modular design allows for easy extension to:
-- 3D space groups (230 groups)
-- Conditional generation
-- Other generative architectures
+The architecture provides:
+- Pattern generation for all 17 wallpaper groups
+- Latent representations via VAE (256×256×3 → 64 dimensions)
+- Continuous phase transitions via Flow Matching
 
