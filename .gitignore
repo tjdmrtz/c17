@@ -14,6 +14,10 @@ runs/
 
 # Debug images
 debug_*.png
+test_*.png
+out.png
+scripts/test_*.png
+scripts/out.png
 
 # Python
 __pycache__/

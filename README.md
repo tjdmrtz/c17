@@ -1,29 +1,151 @@
-# Crystallographic Pattern Generator
+# 🔬 Crystallographic Pattern Generator & Phase Transitions
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.8+-blue.svg" alt="Python">
   <img src="https://img.shields.io/badge/PyTorch-2.0+-red.svg" alt="PyTorch">
-  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License">
+  <img src="https://img.shields.io/badge/Flow_Matching-SOTA-green.svg" alt="Flow Matching">
+  <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
 </p>
 
-A Python library for generating, visualizing, and learning from the **17 wallpaper groups** (plane crystallographic groups). Designed for training Variational Autoencoders (VAE) with CNN and GCN architectures.
+<p align="center">
+  <strong>Generate, visualize, and learn continuous phase transitions between the 17 wallpaper groups using state-of-the-art Flow Matching.</strong>
+</p>
+
+---
+
+## ✨ Key Features
+
+- **Pattern Generation**: Mathematically correct patterns for all 17 plane crystallographic groups
+- **Variational Autoencoder (VAE)**: Learn latent representations of crystallographic patterns
+- **Flow Matching Transitions**: State-of-the-art continuous transformations between symmetry groups
+- **Real-time Dashboard**: Monitor training with live visualizations
+- **Beautiful Visualizations**: High-quality images and animated GIFs of symmetry transitions
+
+---
+
+## 🎬 Phase Transitions in Action
+
+### Continuous Symmetry Transformations
+
+The model learns smooth transitions between different crystallographic symmetry groups:
+
+<table>
+<tr>
+<td align="center"><strong>p1 → p6m</strong><br>(No symmetry → Full hexagonal)</td>
+<td align="center"><strong>p2 → p4</strong><br>(2-fold → 4-fold rotation)</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/transitions/p1_to_p6m.gif" width="280" alt="p1 to p6m transition"></td>
+<td align="center"><img src="docs/images/transitions/p2_to_p4.gif" width="280" alt="p2 to p4 transition"></td>
+</tr>
+<tr>
+<td align="center"><strong>p3 → p6</strong><br>(3-fold → 6-fold rotation)</td>
+<td align="center"><strong>p4 → p4m</strong><br>(Adding mirror symmetries)</td>
+</tr>
+<tr>
+<td align="center"><img src="docs/images/transitions/p3_to_p6.gif" width="280" alt="p3 to p6 transition"></td>
+<td align="center"><img src="docs/images/transitions/p4_to_p4m.gif" width="280" alt="p4 to p4m transition"></td>
+</tr>
+</table>
+
+### Transition Strip Examples
+
+<p align="center">
+  <img src="docs/images/transitions/p1_to_p6m_sample1.png" width="100%" alt="p1 to p6m transition strip">
+  <br><em>Transition from p1 (no symmetry) to p6m (maximum hexagonal symmetry)</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/transitions/p2_to_p4_sample1.png" width="100%" alt="p2 to p4 transition strip">
+  <br><em>Transition from p2 (180° rotation) to p4 (90° rotation)</em>
+</p>
+
+---
 
 ## 🔷 The 17 Wallpaper Groups
 
-The wallpaper groups represent the only 17 distinct ways to tile a 2D plane with a repeating pattern using combinations of:
+The **wallpaper groups** (or plane crystallographic groups) represent the only 17 distinct ways to tile a 2D plane with a repeating pattern. They are fundamental to crystallography, art, and mathematics.
 
-| Lattice Type | Groups | Symmetries |
-|-------------|--------|------------|
-| **Oblique** | p1, p2 | Translation only, 2-fold rotation |
-| **Rectangular** | pm, pg, cm, pmm, pmg, pgg, cmm | Reflections, glide reflections |
-| **Square** | p4, p4m, p4g | 4-fold rotation with reflections |
-| **Hexagonal** | p3, p3m1, p31m, p6, p6m | 3-fold and 6-fold rotations |
+<p align="center">
+  <img src="docs/images/wallpaper_groups/all_17_groups_overview.png" width="90%" alt="All 17 wallpaper groups">
+</p>
+
+### Classification by Lattice Type
+
+| Lattice | Groups | Rotation | Description |
+|---------|--------|----------|-------------|
+| **Oblique** | p1, p2 | 1, 2 | Most general lattice |
+| **Rectangular** | pm, pg, cm, pmm, pmg, pgg, cmm | 1, 2 | Right-angle axes |
+| **Square** | p4, p4m, p4g | 4 | 90° rotational symmetry |
+| **Hexagonal** | p3, p3m1, p31m, p6, p6m | 3, 6 | 60°/120° rotational symmetry |
+
+### Symmetry Properties
+
+| Group | Rotation | Reflection | Glide | Description |
+|-------|----------|------------|-------|-------------|
+| p1 | - | - | - | Translation only |
+| p2 | 2-fold | - | - | 180° rotation |
+| pm | - | ✓ | - | Parallel mirrors |
+| pg | - | - | ✓ | Glide reflection |
+| cm | - | ✓ | ✓ | Mirror + glide |
+| pmm | 2-fold | ✓✓ | - | Perpendicular mirrors |
+| pmg | 2-fold | ✓ | ✓ | Mirror + perpendicular glide |
+| pgg | 2-fold | - | ✓✓ | Perpendicular glides |
+| cmm | 2-fold | ✓✓ | ✓ | Centered rectangle |
+| p4 | 4-fold | - | - | 90° rotation |
+| p4m | 4-fold | ✓ | ✓ | Square with all mirrors |
+| p4g | 4-fold | ✓ | ✓ | Square with glides |
+| p3 | 3-fold | - | - | 120° rotation |
+| p3m1 | 3-fold | ✓ | - | Mirrors through centers |
+| p31m | 3-fold | ✓ | - | Mirrors between centers |
+| p6 | 6-fold | - | - | 60° rotation |
+| p6m | 6-fold | ✓ | ✓ | Full hexagonal symmetry |
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         SYSTEM ARCHITECTURE                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│   ┌──────────────┐     ┌───────────────┐     ┌────────────────────┐    │
+│   │   Dataset    │────▶│   RGB VAE     │────▶│   Flow Matching    │    │
+│   │   (H5 File)  │     │   Encoder     │     │   Transition       │    │
+│   │   8500 imgs  │     │   256→64      │     │   v(z,t) learned   │    │
+│   └──────────────┘     └───────────────┘     └────────────────────┘    │
+│          │                    │                       │                 │
+│          ▼                    ▼                       ▼                 │
+│   ┌──────────────┐     ┌───────────────┐     ┌────────────────────┐    │
+│   │   Pattern    │     │ Latent Space  │     │   Continuous       │    │
+│   │   Generator  │     │   (64-dim)    │     │   Trajectory       │    │
+│   │   17 Groups  │     │   Clustered   │     │   z(t): 0→1        │    │
+│   └──────────────┘     └───────────────┘     └────────────────────┘    │
+│                               │                       │                 │
+│                               ▼                       ▼                 │
+│                        ┌───────────────┐     ┌────────────────────┐    │
+│                        │   RGB VAE     │◀────│   Decoded          │    │
+│                        │   Decoder     │     │   Transitions      │    │
+│                        │   64→256      │     │   (GIFs/Videos)    │    │
+│                        └───────────────┘     └────────────────────┘    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Training Curves
+
+<p align="center">
+  <img src="docs/images/flow_matching/training_curves.png" width="80%" alt="Training curves">
+</p>
+
+---
 
 ## 📦 Installation
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/yourusername/cristalography.git
 cd cristalography
 
 # Create virtual environment
@@ -33,11 +155,23 @@ source venv/bin/activate  # Linux/Mac
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Optional: Install UMAP for better latent space visualization
+pip install umap-learn
 ```
+
+### Requirements
+
+- Python 3.8+
+- PyTorch 2.0+
+- CUDA (recommended for training)
+- ~4GB GPU memory for training
+
+---
 
 ## 🚀 Quick Start
 
-### Generate Patterns
+### 1. Generate Patterns
 
 ```python
 from src.dataset import WallpaperGroupGenerator
@@ -52,37 +186,45 @@ pattern = generator.generate("p6m", motif_size=64, complexity=4)
 all_patterns = generator.generate_all(motif_size=64)
 ```
 
-### Visualize
+### 2. Create Dataset
 
-```python
-from src.visualization import plot_all_groups, PatternVisualizer
-
-# Plot all 17 groups
-fig = plot_all_groups(save_path="all_groups.png")
-
-# Visualize with symmetry annotations
-viz = PatternVisualizer(style='dark')
-viz.plot_symmetry_annotations(pattern, "p6m", save_path="symmetry.png")
+```bash
+# Generate full dataset (8500 samples: 500 per group × 17 groups)
+python scripts/generate_colored_dataset.py \
+    --output-dir ./data/colored_crystallographic \
+    --samples-per-group 500 \
+    --resolution 256
 ```
 
-### Create Dataset
+### 3. Train VAE
 
-```python
-from src.dataset import CrystallographicDataset, create_dataloaders
-
-# Create dataset
-dataset = CrystallographicDataset(
-    num_samples_per_group=100,
-    resolution=128,
-    representation="image"  # or "graph" for GCN
-)
-
-# Get dataloaders
-train_loader, val_loader = create_dataloaders(
-    batch_size=32,
-    num_samples_per_group=500
-)
+```bash
+# Train the VAE for pattern reconstruction
+python scripts/train_simple_vae.py \
+    --data-path data/colored_crystallographic/crystallographic_patterns_colored.h5 \
+    --epochs 100 \
+    --latent-dim 64 \
+    --batch-size 32
 ```
+
+### 4. Train Flow Matching Transitions
+
+```bash
+# Train Flow Matching for phase transitions
+python scripts/train_flow_matching.py \
+    --vae-checkpoint output/simple_vae_XXXX/best_model.pt \
+    --epochs 100 \
+    --batch-size 128
+```
+
+### 5. Monitor Training (Optional)
+
+```bash
+# Launch the dashboard viewer in another terminal
+python scripts/dashboard_viewer.py --output-dir output/flow_matching_XXXX
+```
+
+---
 
 ## 📁 Project Structure
 
@@ -90,212 +232,161 @@ train_loader, val_loader = create_dataloaders(
 cristalography/
 ├── src/
 │   ├── dataset/
-│   │   ├── pattern_generator.py  # Core pattern generation
-│   │   └── dataset.py            # PyTorch Dataset
+│   │   ├── pattern_generator.py      # Core 17-group pattern generation
+│   │   ├── color_patterns.py         # Color scheme generation
+│   │   ├── dataset.py                # PyTorch Dataset classes
+│   │   └── transition_dataset.py     # Transition pairs for training
+│   │
+│   ├── models/
+│   │   ├── vae_simple_rgb.py         # RGB VAE encoder/decoder
+│   │   ├── flow_matching_transition.py  # Flow Matching model
+│   │   └── neural_ode_transition.py  # Alternative Neural ODE approach
+│   │
 │   ├── visualization/
-│   │   └── visualize.py          # Visualization utilities
-│   └── models/                   # VAE models (coming soon)
+│   │   ├── visualize.py              # Pattern visualization
+│   │   └── latent_explorer.py        # Latent space visualization
+│   │
+│   └── analysis/
+│       └── symmetry_verifier.py      # Verify pattern symmetries
+│
 ├── scripts/
-│   ├── generate_dataset.py       # CLI for dataset generation
-│   └── visualize_patterns.py     # CLI for visualization
-├── data/                         # Generated datasets
-├── output/                       # Visualizations
-├── requirements.txt
-└── README.md
+│   ├── train_flow_matching.py        # Main training script
+│   ├── train_simple_vae.py           # VAE training
+│   ├── generate_colored_dataset.py   # Dataset generation
+│   ├── dashboard_complete.py         # Training dashboard
+│   └── visualize_patterns.py         # Visualization utilities
+│
+├── data/
+│   └── colored_crystallographic/     # Generated dataset
+│       ├── crystallographic_patterns_colored.h5
+│       └── splits.npz
+│
+├── output/
+│   └── flow_matching_*/              # Training outputs
+│       ├── best_model.pt
+│       ├── config.json
+│       ├── visualizations/
+│       └── full_visualizations/
+│           └── transitions/*.gif     # Animated transitions
+│
+├── docs/
+│   ├── WALLPAPER_GROUPS_MATH.md      # Mathematical background
+│   ├── NEURAL_ODE_IMPLEMENTATION_PLAN.md
+│   ├── ARCHITECTURE.md               # System architecture
+│   └── images/                       # Documentation images
+│
+└── requirements.txt
 ```
 
-## 🛠️ Command Line Tools
+---
 
-### Generate Dataset
+## 🔬 Technical Details
 
-```bash
-# Generate full dataset (8500 samples: 500 per group × 17 groups)
-python scripts/generate_dataset.py \
-    --output-dir ./data/crystallographic \
-    --samples-per-group 500 \
-    --resolution 128
+### Flow Matching (State-of-the-Art 2023-2024)
 
-# Quick test with fewer samples
-python scripts/generate_dataset.py -n 10 -r 64
-```
+This project uses **Conditional Flow Matching (CFM)** with **Optimal Transport** paths, the same technique used in:
+- Stable Diffusion 3
+- Meta's Imagen
+- Google's research on generative models
 
-### Visualize Patterns
+**Key advantages over Neural ODE:**
+- More stable training (no adjoint method needed)
+- Faster inference (fewer function evaluations)
+- Straighter trajectories (with Optimal Transport)
+- Better theoretical properties
 
-```bash
-# Generate all visualizations
-python scripts/visualize_patterns.py --output-dir ./output/viz
+### Mathematical Formulation
 
-# Specific groups with symmetry annotations
-python scripts/visualize_patterns.py --groups p4m p6m cmm --with-symmetry
-
-# Light theme
-python scripts/visualize_patterns.py --style light
-```
-
-## 🎨 Pattern Examples
-
-Each wallpaper group has unique symmetry properties:
-
-| Group | Rotation | Reflection | Glide | Description |
-|-------|----------|------------|-------|-------------|
-| p1 | - | - | - | Translation only |
-| p2 | 2-fold | - | - | 180° rotation |
-| pm | - | ✓ | - | Mirror lines |
-| pg | - | - | ✓ | Glide reflection |
-| cm | - | ✓ | ✓ | Mirror + glide |
-| pmm | 2-fold | ✓ | - | Perpendicular mirrors |
-| pmg | 2-fold | ✓ | ✓ | Mirror + perpendicular glide |
-| pgg | 2-fold | - | ✓ | Perpendicular glides |
-| cmm | 2-fold | ✓ | ✓ | Centered rectangle |
-| p4 | 4-fold | - | - | 90° rotation |
-| p4m | 4-fold | ✓ | ✓ | Square with all mirrors |
-| p4g | 4-fold | ✓ | ✓ | Square with glides |
-| p3 | 3-fold | - | - | 120° rotation |
-| p3m1 | 3-fold | ✓ | - | Mirrors through centers |
-| p31m | 3-fold | ✓ | - | Mirrors between centers |
-| p6 | 6-fold | - | - | 60° rotation |
-| p6m | 6-fold | ✓ | ✓ | Full hexagonal symmetry |
-
-## 🧠 Data Representations
-
-The dataset supports two representations:
-
-### Image (for CNN)
-- Grayscale images: `[1, H, W]`
-- Normalized to `[0, 1]`
-
-### Graph (for GCN)
-- Node features: intensity + local gradients
-- Edges: spatial proximity-based
-- Compatible with PyTorch Geometric
-
-```python
-# Image representation
-dataset_cnn = CrystallographicDataset(representation="image")
-image, label = dataset_cnn[0]  # [1, 128, 128], int
-
-# Graph representation
-dataset_gcn = CrystallographicDataset(representation="graph")
-graph, label = dataset_gcn[0]  # {'x': [N, 3], 'edge_index': [2, E]}, int
-```
-
-## 📊 Dataset Statistics
-
-With default settings (`500 samples/group × 17 groups`):
-- **Total samples**: 8,500
-- **Train/Val/Test split**: 70% / 15% / 15%
-- **File size**: ~150 MB (HDF5, compressed)
-
-## 🧠 Variational Autoencoder (VAE)
-
-The project includes a complete VAE implementation for learning latent representations of crystallographic patterns.
-
-### Architecture
+The Flow Matching model learns a velocity field:
 
 ```
-Input [B, 1, 128, 128]
-    ↓
-Encoder (CNN with residual blocks)
-    ↓
-Latent Distribution (μ, log σ²)
-    ↓
-Reparametrization: z = μ + σ × ε
-    ↓
-Decoder (Transposed CNN)
-    ↓
-Output [B, 1, 128, 128]
+v(z, t, source, target) : ℝ^d × [0,1] × G × G → ℝ^d
 ```
 
-### Training
+Where:
+- `z` ∈ ℝ^64 is the latent representation
+- `t` ∈ [0,1] is the transition time
+- `source`, `target` ∈ {17 wallpaper groups}
 
-```bash
-# Quick training (fewer samples)
-python scripts/train_vae.py --epochs 50 --samples-per-group 50
-
-# Full training
-python scripts/train_vae.py \
-    --epochs 100 \
-    --samples-per-group 200 \
-    --latent-dim 128 \
-    --batch-size 32 \
-    --beta 1.0
-
-# Resume from checkpoint
-python scripts/train_vae.py --resume checkpoints/best_model.pt
-```
-
-### Evaluation
-
-```bash
-# Generate visualizations from trained model
-python scripts/evaluate_vae.py --checkpoint checkpoints/best_model.pt
-```
-
-This generates:
-- **Random samples** from the prior distribution
-- **Reconstructions** for each wallpaper group
-- **Latent interpolations** between different groups
-- **t-SNE visualization** of the latent space
-
-### Loss Function
-
-The VAE uses a combined loss:
+The training loss is simply MSE between predicted and target velocities:
 
 ```
-Loss = Reconstruction Loss + β × KL Divergence + γ × Classification Loss
+L = ||v_pred(z_t, t) - v_target||²
 ```
 
-- **Reconstruction**: MSE between input and output
-- **KL Divergence**: Regularizes latent space toward N(0,1)
-- **Classification**: Optional auxiliary task for group prediction
+Where `z_t = (1-t)·z_source + t·z_target` (linear interpolation).
 
-### Model Features
+### VAE Architecture
 
-- **Interpolation**: Smooth transitions between patterns in latent space
-- **Sampling**: Generate new patterns from the prior
-- **Classification**: Predict wallpaper group from latent representation
-
-```python
-from src.models import CrystallographicVAE
-
-model = CrystallographicVAE(latent_dim=128)
-
-# Encode
-mu, logvar = model.encode(images)
-
-# Sample new patterns
-samples = model.sample(num_samples=16, device='cuda')
-
-# Interpolate between two patterns
-interpolations = model.interpolate(img1, img2, steps=10)
+```
+Input: [B, 3, 256, 256] RGB image
+       ↓
+Encoder: Conv layers with residual blocks
+       ↓
+Latent: [B, 64] dimensional representation
+       ↓
+Decoder: Transposed convolutions
+       ↓
+Output: [B, 3, 256, 256] reconstructed image
 ```
 
-## 🔬 Why CNN over GCN?
+---
 
-For these 2D pattern images, **CNN is the optimal choice**:
+## 📊 Results
 
-| Aspect | CNN | GCN |
-|--------|-----|-----|
-| Data type | Regular grid (images) ✓ | Irregular graphs |
-| Spatial locality | Built-in convolution ✓ | Requires graph construction |
-| Efficiency | Highly optimized ✓ | Additional overhead |
-| Use case | Pattern images ✓ | Molecular structures |
+### Latent Space Organization
 
-**GCN would be appropriate if**: Working with actual crystal structures (atoms as nodes, bonds as edges), molecular graphs, or point cloud representations.
+The VAE learns a structured latent space where patterns cluster by symmetry group:
 
-## 🔜 Future Improvements
+- **Hexagonal groups** (p3, p6, p6m) cluster together
+- **Square groups** (p4, p4m, p4g) form their own cluster
+- **Rectangular groups** form a continuum based on symmetry complexity
 
-- [ ] Conditional VAE (specify wallpaper group)
-- [ ] β-VAE with annealing schedule
+### Transition Quality
+
+The Flow Matching model achieves:
+- **Smooth transitions** between any pair of groups
+- **Physically meaningful** intermediate states
+- **Stable training** without mode collapse
+
+---
+
+## 📚 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Wallpaper Groups Math](docs/WALLPAPER_GROUPS_MATH.md) | Complete mathematical guide to the 17 groups |
+| [Neural ODE Plan](docs/NEURAL_ODE_IMPLEMENTATION_PLAN.md) | Detailed implementation plan |
+| [Architecture](docs/ARCHITECTURE.md) | System architecture and data flow |
+| [API Reference](docs/API_REFERENCE.md) | Scripts and module documentation |
+
+---
+
+## 🔜 Future Work
+
+- [ ] Conditional generation (specify target symmetry group)
+- [ ] 3D space group support (230 groups)
+- [ ] Interactive web demo
+- [ ] Disentangled latent representations
 - [ ] Symmetry-aware loss functions
-- [ ] Disentangled representations
 
-## 📚 References
+---
 
-- [The 17 Wallpaper Groups](https://en.wikipedia.org/wiki/Wallpaper_group)
-- [International Tables for Crystallography](https://it.iucr.org/)
+## 📄 References
+
+1. **Lipman et al.** "Flow Matching for Generative Modeling" (2023) - Core Flow Matching theory
+2. **Liu et al.** "Flow Straight and Fast" (2023) - Rectified Flow
+3. **The 17 Wallpaper Groups** - [Wikipedia](https://en.wikipedia.org/wiki/Wallpaper_group)
+4. **International Tables for Crystallography** - [IUCr](https://it.iucr.org/)
+
+---
 
 ## 📄 License
 
-MIT License - See LICENSE file for details.
+MIT License - See [LICENSE](LICENSE) file for details.
 
+---
+
+<p align="center">
+  Made with ❤️ for crystallography and machine learning
+</p>
