@@ -95,13 +95,18 @@ The wallpaper groups represent the only 17 distinct ways to tile a 2D plane with
 git clone https://github.com/khabalghoul/c17.git
 cd c17
 
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
+# Create conda environment
+conda create -n c17 python=3.10 -y
+conda activate c17
 
+# Install dependencies
 pip install -r requirements.txt
+
+# Install PyTorch with CUDA (adjust cuda version as needed)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 ```
 
-Requirements: Python 3.8+, PyTorch 2.0+, CUDA recommended.
+Requirements: Python 3.8+, PyTorch 2.0+, CUDA 11.8+ recommended.
 
 ---
 
