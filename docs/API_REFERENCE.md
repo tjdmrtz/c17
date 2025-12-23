@@ -90,6 +90,25 @@ output/simple_vae_YYYYMMDD_HHMMSS/
 
 ---
 
+### `scripts/evaluate_vae.py`
+
+**Evaluate a trained VAE model.**
+
+```bash
+python scripts/evaluate_vae.py \
+    --checkpoint output/simple_vae_XXXX/best_model.pt \
+    --output-dir output/evaluation \
+    --samples-per-group 50 \
+    --resolution 256
+```
+
+**Output:**
+- Reconstruction quality metrics (MSE, SSIM)
+- Latent space visualizations (UMAP/t-SNE)
+- Sample reconstructions per group
+
+---
+
 ## 2. Data Generation Scripts
 
 ### `scripts/generate_colored_dataset.py`
@@ -132,13 +151,21 @@ python scripts/generate_dataset.py \
 
 ### `scripts/generate_all_17_samples.py`
 
-**Generate sample images for all 17 groups for documentation.**
+**Generate sample gallery images for all 17 groups.**
 
 ```bash
 python scripts/generate_all_17_samples.py \
-    --output-dir docs/images/wallpaper_groups \
-    --resolution 512
+    --checkpoint output/simple_vae_XXXX/best_model.pt \
+    --output output/gallery \
+    --samples 6 \
+    --mode all                  # single, multi, grid, or all
 ```
+
+**Modes:**
+- `single`: One sample per group (same latent z)
+- `multi`: Multiple samples per group (row per group)
+- `grid`: 17×17 grid of all groups
+- `all`: Generate all modes
 
 ---
 
@@ -169,10 +196,19 @@ Opens a web browser with:
 ```bash
 python scripts/visualize_patterns.py \
     --output-dir output/visualizations \
-    --groups p4m p6m cmm           # Specific groups (or all)
+    --resolution 256 \
+    --groups p4m p6m cmm           # Specific groups
+    --all-groups                   # Generate complete 17-group overview
+    --by-lattice                   # Organize by lattice type
     --with-symmetry                # Show symmetry annotations
+    --comparison                   # Multiple samples comparison
     --style dark                   # dark or light theme
 ```
+
+**Output files:**
+- `all_17_groups.png`: Overview of all 17 groups
+- `by_lattice.png`: Groups organized by lattice type
+- `{group}_annotated.png`: Pattern with symmetry elements marked
 
 ---
 

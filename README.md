@@ -99,11 +99,16 @@ cd c17
 conda create -n c17 python=3.10 -y
 conda activate c17
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install PyTorch with CUDA (adjust cuda version as needed)
+# Install PyTorch with CUDA first (adjust cuda version as needed)
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# Install other dependencies
+pip install -r requirements.txt
+```
+
+**Troubleshooting:** If you get CUDA/cuDNN errors, you may have conflicting packages in `~/.local`. Fix with:
+```bash
+pip install --force-reinstall torch torchvision --index-url https://download.pytorch.org/whl/cu118
 ```
 
 Requirements: Python 3.8+, PyTorch 2.0+, CUDA 11.8+ recommended.
