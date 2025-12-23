@@ -10,9 +10,7 @@ Technical documentation for the Crystallographic Pattern Generator.
 |----------|-------------|----------|
 | [Architecture](ARCHITECTURE.md) | System design, data flow, model components | Developers |
 | [API Reference](API_REFERENCE.md) | Scripts, modules, function documentation | Developers |
-| [Wallpaper Groups Math](WALLPAPER_GROUPS_MATH.md) | Mathematical foundations of the 17 groups | Researchers |
-| [Jupyter Guide (EN)](Wallpaper_Groups_Guide.ipynb) | Interactive tutorial | Learners |
-| [Jupyter Guide (ES, executed)](Wallpaper_Groups_Guide_ES_executed.ipynb) | With rendered outputs | Learners |
+| [Wallpaper Groups Guide](Wallpaper_Groups_Guide_executed.ipynb) | Mathematical foundations with visualizations | All |
 
 ---
 

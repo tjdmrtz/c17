@@ -159,7 +159,7 @@ cristalography/
 ├── docs/
 │   ├── ARCHITECTURE.md               # System architecture
 │   ├── API_REFERENCE.md              # API documentation
-│   └── WALLPAPER_GROUPS_MATH.md      # Mathematical background
+│   └── Wallpaper_Groups_Guide_executed.ipynb  # Mathematical guide with visualizations
 └── requirements.txt
 ```
 
@@ -193,7 +193,7 @@ Input: [B, 3, 256, 256] → Encoder → Latent [B, 64] → Decoder → Output: [
 |----------|-------------|
 | [Architecture](docs/ARCHITECTURE.md) | System design, models, data flow |
 | [API Reference](docs/API_REFERENCE.md) | Scripts and modules |
-| [Wallpaper Groups Math](docs/WALLPAPER_GROUPS_MATH.md) | Mathematical foundations |
+| [Wallpaper Groups Guide](docs/Wallpaper_Groups_Guide_executed.ipynb) | Mathematical foundations (interactive notebook with visualizations) |
 
 ---
 
