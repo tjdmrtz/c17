@@ -276,7 +276,21 @@ const PatternGenerator = {
     },
     
     /**
-     * pmg: Reflexión + glide perpendicular
+     * Rotar 180° una matriz rectangular (width x height)
+     */
+    rot180Rect(data, width, height) {
+        const result = new Float32Array(width * height);
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                result[(height - 1 - y) * width + (width - 1 - x)] = data[y * width + x];
+            }
+        }
+        return result;
+    },
+    
+    /**
+     * pmg: Reflexión vertical + glide horizontal → C₂ emerge
+     * Celda debe tener: σᵥ (reflexión vertical) y C₂ (rotación 180°)
      */
     generatePMG(size, rng, motifSize = 64) {
         const halfSize = motifSize;
@@ -287,17 +301,24 @@ const PatternGenerator = {
         
         // Upper left: fund
         this.placeBlock(cell, cellSize, fund, halfSize, halfSize, 0, 0);
-        // Upper right: flipLR(fund)
+        
+        // Upper right: flipLR(fund) - reflexión vertical
         const flipH = this.flipLR(fund, halfSize, halfSize);
         this.placeBlock(cell, cellSize, flipH, halfSize, halfSize, halfSize, 0);
-        // Lower half: rot180 of upper half (ensures C2)
+        
+        // Lower half: rot180 de la mitad superior (garantiza C₂)
+        // La mitad superior tiene dimensiones halfSize (alto) x cellSize (ancho)
         const upperHalf = new Float32Array(halfSize * cellSize);
         for (let y = 0; y < halfSize; y++) {
             for (let x = 0; x < cellSize; x++) {
                 upperHalf[y * cellSize + x] = cell[y * cellSize + x];
             }
         }
-        const lowerHalf = this.rot180(upperHalf, cellSize);
+        
+        // Rotar 180° la mitad superior (rectángulo)
+        const lowerHalf = this.rot180Rect(upperHalf, cellSize, halfSize);
+        
+        // Colocar en la mitad inferior
         for (let y = 0; y < halfSize; y++) {
             for (let x = 0; x < cellSize; x++) {
                 cell[(halfSize + y) * cellSize + x] = lowerHalf[y * cellSize + x];
@@ -343,36 +364,32 @@ const PatternGenerator = {
     },
     
     /**
-     * cmm: Celda centrada con reflexiones
+     * cmm: Celda centrada con reflexiones perpendiculares (D₂)
+     * Simetrías: {e, C₂, σᵥ, σₕ} - NO incluye glides puros
+     * 
+     * Técnica: Crear celda pmm-like (4 cuadrantes) sin superposición
      */
     generateCMM(size, rng, motifSize = 64) {
-        const motif = this.createMotif(motifSize, rng);
+        // Para cmm usamos celda doble para el centrado
+        const halfSize = motifSize;
+        const cellSize = halfSize * 2;
         
-        const flipH = this.flipLR(motif, motifSize, motifSize);
-        const flipV = this.flipUD(motif, motifSize, motifSize);
-        const rot = this.rot180(motif, motifSize);
+        const motif = this.createMotif(halfSize, rng);
         
-        const top = this.hstack(motif, flipH, motifSize, motifSize);
-        const bottom = this.hstack(flipV, rot, motifSize, motifSize);
-        const basic = this.vstack(top.data, bottom.data, top.width, top.height);
+        // Crear celda con simetría D₂ (C₂ + σᵥ + σₕ)
+        // | M         | flipLR(M) |
+        // | flipUD(M) | rot180(M) |
+        const flipH = this.flipLR(motif, halfSize, halfSize);
+        const flipV = this.flipUD(motif, halfSize, halfSize);
+        const rot = this.rot180(motif, halfSize);
         
-        // Add centering
-        const cellW = basic.width;
-        const cellH = basic.height;
-        const shifted = new Float32Array(basic.data.length);
-        for (let y = 0; y < cellH; y++) {
-            for (let x = 0; x < cellW; x++) {
-                const sy = (y + Math.floor(cellH / 2)) % cellH;
-                const sx = (x + Math.floor(cellW / 2)) % cellW;
-                shifted[y * cellW + x] = basic.data[sy * cellW + sx];
-            }
-        }
+        const cell = new Float32Array(cellSize * cellSize);
         
-        // Combine
-        const cell = new Float32Array(basic.data.length);
-        for (let i = 0; i < cell.length; i++) {
-            cell[i] = basic.data[i] + shifted[i] * 0.5;
-        }
+        // Colocar los 4 cuadrantes
+        this.placeBlock(cell, cellSize, motif, halfSize, halfSize, 0, 0);
+        this.placeBlock(cell, cellSize, flipH, halfSize, halfSize, halfSize, 0);
+        this.placeBlock(cell, cellSize, flipV, halfSize, halfSize, 0, halfSize);
+        this.placeBlock(cell, cellSize, rot, halfSize, halfSize, halfSize, halfSize);
         
         // Normalize
         let max = 0;
@@ -385,7 +402,7 @@ const PatternGenerator = {
             }
         }
         
-        return this.tile(cell, cellW, cellH, size);
+        return this.tile(cell, cellSize, cellSize, size);
     },
     
     /**
