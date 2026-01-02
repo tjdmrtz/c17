@@ -516,6 +516,58 @@ canvas {
     color: var(--text-muted);
 }
 
+/* Generation method toggle */
+.generation-method {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(0, 212, 170, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 212, 170, 0.2);
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.toggle-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--crystal-emerald);
+}
+
+.toggle-text {
+    transition: color 0.2s;
+}
+
+.toggle-label:hover .toggle-text {
+    color: var(--crystal-emerald);
+}
+
+.regenerate-btn {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, var(--crystal-purple), var(--crystal-blue));
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.regenerate-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(183, 148, 246, 0.4);
+}
+
 /* Reset section */
 .reset-section {
     display: flex;

@@ -32,6 +32,10 @@ class WallpaperExplorer {
         // El centro de rotación es 149.5 (entre pixels 149 y 150)
         this.canvasSize = 300;
         
+        // Método de generación de patrones
+        this.useGenerators = false;
+        this.patternSeed = Math.random();
+        
         this.init();
     }
     
@@ -62,6 +66,17 @@ class WallpaperExplorer {
         // Reset button
         document.getElementById('resetBtn').addEventListener('click', () => {
             this.reset();
+        });
+        
+        // Regenerate button
+        document.getElementById('regenerateBtn').addEventListener('click', () => {
+            this.regeneratePattern();
+        });
+        
+        // Generator toggle
+        document.getElementById('useGenerators').addEventListener('change', (e) => {
+            this.useGenerators = e.target.checked;
+            this.regeneratePattern();
         });
         
         // Help modal
@@ -768,14 +783,28 @@ class WallpaperExplorer {
      * - p2: C2 symmetry (180°) ONLY
      * - etc.
      */
+    regeneratePattern() {
+        // Generar nuevo patrón con semilla diferente
+        this.patternSeed = Math.random();
+        this.selectGroup(this.currentGroup);
+    }
+    
     generatePattern(groupName) {
         const size = this.canvasSize;
         const imageData = this.originalCtx.createImageData(size, size);
         const group = WallpaperGroups[groupName];
         
-        // Use different seeds for different groups to ensure variety
-        const seed = this.hashString(groupName + '_v3_centered');
+        // Use seed for reproducible patterns
+        const baseSeed = this.hashString(groupName + '_v3_centered');
+        const seed = baseSeed + Math.floor(this.patternSeed * 1000000);
         const rng = this.seededRandom(seed);
+        
+        // Si useGenerators está activado, usar el generador desde generadores
+        if (this.useGenerators && typeof PatternGenerator !== 'undefined') {
+            const pattern = PatternGenerator.generateFromGenerators(groupName, size, { rng });
+            this.applyPatternToCanvas(pattern, imageData, size);
+            return;
+        }
         
         // Generate pattern with EXACT symmetries centered on canvas
         let pattern;
@@ -837,6 +866,31 @@ class WallpaperExplorer {
         }
         
         // Fill image data with viridis colormap
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const value = pattern[y * size + x];
+                const [r, g, b] = this.viridisColor(value);
+                const idx = (y * size + x) * 4;
+                imageData.data[idx] = r;
+                imageData.data[idx + 1] = g;
+                imageData.data[idx + 2] = b;
+                imageData.data[idx + 3] = 255;
+            }
+        }
+        
+        // Store and display
+        this.originalImageData = imageData.data.slice();
+        this.transformedImageData = imageData.data.slice();
+        
+        this.originalCtx.putImageData(imageData, 0, 0);
+        this.transformedCtx.putImageData(imageData, 0, 0);
+        this.updateDifference();
+    }
+    
+    /**
+     * Aplicar un patrón (Float32Array) al canvas usando viridis colormap
+     */
+    applyPatternToCanvas(pattern, imageData, size) {
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const value = pattern[y * size + x];
