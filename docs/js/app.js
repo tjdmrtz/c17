@@ -1050,39 +1050,79 @@ class WallpaperExplorer {
     }
     
     /**
-     * pg: Glide reflection (NOT pure reflection)
+     * pg: Glide reflection (NOT pure reflection!)
+     * Glide = reflexión horizontal (flipUD) + traslación de medio período
+     * NO tiene reflexión vertical pura (σᵥ)
      */
     generatePG(size, rng) {
-        const cellSize = Math.floor(size / 3);
-        const halfCell = Math.floor(cellSize / 2);
-        const motif = this.createAsymmetricMotif(halfCell, rng);
+        const cellSize = Math.floor(size / 4);
         const pattern = new Float32Array(size * size);
         
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                const cx = x % cellSize;
-                const cy = y % cellSize;
-                
-                let mx, my;
-                if (cx < halfCell) {
-                    // Original
-                    mx = cx;
-                    my = cy % halfCell;
-                } else {
-                    // Glide: reflect vertically + shift by half cell in y
-                    mx = cellSize - 1 - cx;
-                    my = (cy + halfCell) % cellSize;
-                    my = my % halfCell;
+        // Crear motivo asimétrico
+        const motif = new Float32Array(cellSize * cellSize);
+        const numElements = 3 + Math.floor(rng() * 3);
+        
+        for (let k = 0; k < numElements; k++) {
+            const cx = rng() * cellSize;
+            const cy = rng() * cellSize;
+            const sigma = rng() * cellSize / 4 + cellSize / 10;
+            const amplitude = rng() * 0.5 + 0.5;
+            
+            for (let y = 0; y < cellSize; y++) {
+                for (let x = 0; x < cellSize; x++) {
+                    const dx = x - cx;
+                    const dy = y - cy;
+                    motif[y * cellSize + x] += amplitude * Math.exp(-(dx*dx + dy*dy) / (2 * sigma * sigma));
                 }
-                
-                mx = Math.max(0, Math.min(halfCell - 1, mx));
-                my = Math.max(0, Math.min(halfCell - 1, my));
-                
-                pattern[y * size + x] = motif[my * halfCell + mx];
             }
         }
         
-        return this.normalizePattern(pattern);
+        // Glide = flipUD + roll horizontal por medio período
+        // Esto crea: [M | glide(M)] donde glide NO es igual a flipLR
+        const glided = new Float32Array(cellSize * cellSize);
+        const shift = Math.floor(cellSize / 2);
+        for (let y = 0; y < cellSize; y++) {
+            for (let x = 0; x < cellSize; x++) {
+                // flipUD: (x, y) -> (x, cellSize-1-y)
+                // roll horizontal: x -> (x + shift) % cellSize
+                const srcY = cellSize - 1 - y;
+                const srcX = (x - shift + cellSize) % cellSize;
+                glided[y * cellSize + x] = motif[srcY * cellSize + srcX];
+            }
+        }
+        
+        // Celda: [M | glided] - NO es lo mismo que [M | flipLR(M)]
+        const cellWidth = cellSize * 2;
+        const cell = new Float32Array(cellSize * cellWidth);
+        
+        for (let y = 0; y < cellSize; y++) {
+            for (let x = 0; x < cellSize; x++) {
+                cell[y * cellWidth + x] = motif[y * cellSize + x];
+                cell[y * cellWidth + cellSize + x] = glided[y * cellSize + x];
+            }
+        }
+        
+        // Tile
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                const cy = y % cellSize;
+                const cx = x % cellWidth;
+                pattern[y * size + x] = cell[cy * cellWidth + cx];
+            }
+        }
+        
+        // Normalizar
+        let max = 0;
+        for (let i = 0; i < pattern.length; i++) {
+            if (pattern[i] > max) max = pattern[i];
+        }
+        if (max > 0) {
+            for (let i = 0; i < pattern.length; i++) {
+                pattern[i] /= max;
+            }
+        }
+        
+        return pattern;
     }
     
     /**
