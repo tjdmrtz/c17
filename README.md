@@ -244,4 +244,4 @@ The test suite verifies:
 
 MIT License
 
-"no se trata de la simetrías que ves, se trata de las que no ves"  Dr. Giribet
+"no se trata de la simetrías que ves, se trata de las que no ves"  Federico Zamberlan, Gaston Giribet
