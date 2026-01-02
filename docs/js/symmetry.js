@@ -572,14 +572,14 @@ const WallpaperGroups = {
         rotationOrder: 1,
         hasReflection: false,
         hasGlide: true,
-        description: 'Reflexiones deslizantes (glide) paralelas. Sin reflexión pura.',
+        description: 'Glides paralelos. Sin rotación, sin reflexión pura. g×g = traslación.',
         pointGroupOrder: 1,
-        generators: 't₁, t₂, gₕ',
+        generators: 't₁, t₂, g',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
             { name: 'T(1,0) traslación', ops: [{type: 'translate', dx: 1, dy: 0}] }
         ],
-        invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'σ_v', 'σ_h', 'gₕ (solo)'],
+        invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'σ_v', 'σ_h'],
         // Grupo puntual: C₁ (trivial) - los glides NO son operaciones puntuales
         // Un glide NO da 100%, g² = traslación
         cayleyTable: {
@@ -800,21 +800,21 @@ const WallpaperGroups = {
             { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] },
             { name: 'σₕ', ops: [{type: 'reflect', axis: 'horizontal'}] },
             { name: 'σ_d', ops: [{type: 'reflect', axis: 'diagonal'}] },
-            { name: 'σ_d\'', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
+            { name: 'σ_d′', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
         ],
         invalidSymmetries: ['C3', 'C6'],
         // D₄: C₄=90°, C₂=180°, C₄³=270°, σᵥ, σₕ, σ_d, σ_d'
         cayleyTable: {
-            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σᵥ', 'σₕ', 'σ_d', 'σ_d\''],
+            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σᵥ', 'σₕ', 'σ_d', 'σ_d′'],
             table: [
-                ['e', 'C₄', 'C₂', 'C₄³', 'σᵥ', 'σₕ', 'σ_d', 'σ_d\''],
-                ['C₄', 'C₂', 'C₄³', 'e', 'σ_d\'', 'σ_d', 'σᵥ', 'σₕ'],
-                ['C₂', 'C₄³', 'e', 'C₄', 'σₕ', 'σᵥ', 'σ_d\'', 'σ_d'],
-                ['C₄³', 'e', 'C₄', 'C₂', 'σ_d', 'σ_d\'', 'σₕ', 'σᵥ'],
-                ['σᵥ', 'σ_d', 'σₕ', 'σ_d\'', 'e', 'C₂', 'C₄', 'C₄³'],
-                ['σₕ', 'σ_d\'', 'σᵥ', 'σ_d', 'C₂', 'e', 'C₄³', 'C₄'],
-                ['σ_d', 'σₕ', 'σ_d\'', 'σᵥ', 'C₄³', 'C₄', 'e', 'C₂'],
-                ['σ_d\'', 'σᵥ', 'σ_d', 'σₕ', 'C₄', 'C₄³', 'C₂', 'e']
+                ['e', 'C₄', 'C₂', 'C₄³', 'σᵥ', 'σₕ', 'σ_d', 'σ_d′'],
+                ['C₄', 'C₂', 'C₄³', 'e', 'σ_d′', 'σ_d', 'σᵥ', 'σₕ'],
+                ['C₂', 'C₄³', 'e', 'C₄', 'σₕ', 'σᵥ', 'σ_d′', 'σ_d'],
+                ['C₄³', 'e', 'C₄', 'C₂', 'σ_d', 'σ_d′', 'σₕ', 'σᵥ'],
+                ['σᵥ', 'σ_d', 'σₕ', 'σ_d′', 'e', 'C₂', 'C₄', 'C₄³'],
+                ['σₕ', 'σ_d′', 'σᵥ', 'σ_d', 'C₂', 'e', 'C₄³', 'C₄'],
+                ['σ_d', 'σₕ', 'σ_d′', 'σᵥ', 'C₄³', 'C₄', 'e', 'C₂'],
+                ['σ_d′', 'σᵥ', 'σ_d', 'σₕ', 'C₄', 'C₄³', 'C₂', 'e']
             ]
         },
         explanation: `
@@ -839,20 +839,20 @@ const WallpaperGroups = {
             { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] },
             { name: 'C₄³ (270°)', ops: [{type: 'rotate', angle: 270}] },
             { name: 'σ_d (diagonal)', ops: [{type: 'reflect', axis: 'diagonal'}] },
-            { name: 'σ_d\' (anti-diag)', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
+            { name: 'σ_d′ (anti-diag)', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
         ],
         invalidSymmetries: ['C3', 'C6', 'σᵥ', 'σₕ', 'gᵥ (solo)', 'gₕ (solo)'],
         // D₄ incompleto: C₄, C₂, C₄³ + σ_d, σ_d' (diagonales)
         // σᵥ y σₕ son glides en p4g
         cayleyTable: {
-            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\''],
+            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d′'],
             table: [
-                ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\''],
+                ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d′'],
                 ['C₄', 'C₂', 'C₄³', 'e', '(g)', '(g)'],
-                ['C₂', 'C₄³', 'e', 'C₄', 'σ_d\'', 'σ_d'],
+                ['C₂', 'C₄³', 'e', 'C₄', 'σ_d′', 'σ_d'],
                 ['C₄³', 'e', 'C₄', 'C₂', '(g)', '(g)'],
-                ['σ_d', '(g)', 'σ_d\'', '(g)', 'e', 'C₂'],
-                ['σ_d\'', '(g)', 'σ_d', '(g)', 'C₂', 'e']
+                ['σ_d', '(g)', 'σ_d′', '(g)', 'e', 'C₂'],
+                ['σ_d′', '(g)', 'σ_d', '(g)', 'C₂', 'e']
             ]
         },
         explanation: `

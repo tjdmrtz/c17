@@ -698,11 +698,14 @@ class WallpaperExplorer {
             'Rotación 240°': ['C₃²'],
             'Rotación 270°': ['C₄³'],
             'Rotación 300°': ['C₆⁵'],
-            // Reflexiones - buscar variantes
-            'Reflexión Vertical': ['σᵥ', 'σ₁', 'σ₄'],  // σᵥ o σ₁ (0°) o σ₄ (90°)
-            'Reflexión Horizontal': ['σₕ', 'σ₁', 'σ₄'],
-            'Reflexión Diagonal': ['σ_d', 'σ₂', 'σ_d\''],
-            'Reflexión Anti-diagonal': ['σ_d\'', 'σ₃', 'σ_d'],
+            // Reflexiones
+            // D₂/D₄: σᵥ (vertical), σₕ (horizontal), σ_d (diagonal)
+            // D₃: σ₁, σ₂, σ₃
+            // D₆: σ₁(0°), σ₂(30°), σ₃(60°), σ₄(90°), σ₅(120°), σ₆(150°)
+            'Reflexión Vertical': ['σᵥ', 'σ₄', 'σ₁'],   // eje vertical (90°) o primera
+            'Reflexión Horizontal': ['σₕ', 'σ₁', 'σ₄'], // eje horizontal (0°) o primera
+            'Reflexión Diagonal': ['σ_d', 'σ₂', 'σ₃'],
+            'Reflexión Anti-diagonal': ['σ_d′', 'σ₃', 'σ₂'],
             // Glides
             'Glide Horizontal': ['gₕ', 'g'],
             'Glide Vertical': ['gᵥ', 'g']

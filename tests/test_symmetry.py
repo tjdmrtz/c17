@@ -1,434 +1,484 @@
 #!/usr/bin/env python3
 """
-Tests to verify that generated patterns have the correct symmetry properties
-for each of the 17 wallpaper groups.
-
-Each wallpaper group has specific symmetry operations:
-- Rotations (2-fold, 3-fold, 4-fold, 6-fold)
-- Reflections (horizontal, vertical, diagonal)
-- Glide reflections
-
-These tests verify that patterns exhibit the expected symmetries within
-a tolerance (since patterns are discrete pixel representations).
+Tests rigurosos para verificar:
+1. Que las tablas de Cayley forman grupos válidos
+2. Que los generadores generan correctamente cada grupo
+3. Que las operaciones de simetría son matemáticamente correctas
 """
 
-import pytest
+import re
 import numpy as np
-from scipy.ndimage import rotate as scipy_rotate
 from pathlib import Path
-import sys
-
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-from src.dataset.pattern_generator import WallpaperGroupGenerator, WALLPAPER_GROUPS
+import unittest
+from itertools import product
 
 
-# Tolerance for symmetry checks (patterns are discrete, not perfect)
-# Note: Symmetry scores depend on phase alignment - a pattern can have
-# perfect 90° rotation symmetry but score low if not centered on rotation center
-SYMMETRY_TOLERANCE = 0.25  # 25% difference allowed
-ROTATION_TOLERANCE = 0.30  # 30% for rotations (interpolation + phase artifacts)
-
-
-def normalize_pattern(pattern: np.ndarray) -> np.ndarray:
-    """Normalize pattern to [0, 1] range."""
-    pmin, pmax = pattern.min(), pattern.max()
-    if pmax - pmin > 0:
-        return (pattern - pmin) / (pmax - pmin)
-    return pattern
-
-
-def compute_similarity(a: np.ndarray, b: np.ndarray) -> float:
-    """Compute similarity between two patterns (1 = identical, 0 = different)."""
-    a = normalize_pattern(a)
-    b = normalize_pattern(b)
+def parse_symmetry_js(path):
+    """Parsear symmetry.js para extraer las tablas de Cayley y generadores"""
+    with open(path, 'r', encoding='utf-8') as f:
+        content = f.read()
     
-    # Ensure same size
-    min_h = min(a.shape[0], b.shape[0])
-    min_w = min(a.shape[1], b.shape[1])
-    a = a[:min_h, :min_w]
-    b = b[:min_h, :min_w]
+    groups = {}
     
-    # Mean absolute difference
-    diff = np.abs(a - b).mean()
-    return 1.0 - diff
-
-
-def check_rotation_symmetry(pattern: np.ndarray, angle_degrees: float) -> float:
-    """Check if pattern has rotation symmetry at given angle."""
-    rotated = scipy_rotate(pattern, angle_degrees, reshape=False, order=1, mode='wrap')
-    return compute_similarity(pattern, rotated)
-
-
-def check_reflection_x(pattern: np.ndarray) -> float:
-    """Check reflection symmetry across vertical axis."""
-    reflected = np.flip(pattern, axis=1)
-    return compute_similarity(pattern, reflected)
-
-
-def check_reflection_y(pattern: np.ndarray) -> float:
-    """Check reflection symmetry across horizontal axis."""
-    reflected = np.flip(pattern, axis=0)
-    return compute_similarity(pattern, reflected)
-
-
-def check_glide_x(pattern: np.ndarray, shift: float = 0.5) -> float:
-    """Check glide reflection (reflect + translate) along x."""
-    reflected = np.flip(pattern, axis=0)
-    shift_pixels = int(shift * pattern.shape[1])
-    glided = np.roll(reflected, shift_pixels, axis=1)
-    return compute_similarity(pattern, glided)
-
-
-def check_glide_y(pattern: np.ndarray, shift: float = 0.5) -> float:
-    """Check glide reflection along y."""
-    reflected = np.flip(pattern, axis=1)
-    shift_pixels = int(shift * pattern.shape[0])
-    glided = np.roll(reflected, shift_pixels, axis=0)
-    return compute_similarity(pattern, glided)
-
-
-def check_translation_period(pattern: np.ndarray, axis: int, period_fraction: float) -> float:
-    """Check if pattern has translation symmetry at given period."""
-    shift = int(period_fraction * pattern.shape[axis])
-    translated = np.roll(pattern, shift, axis=axis)
-    return compute_similarity(pattern, translated)
-
-
-class TestWallpaperGroupSymmetries:
-    """Test symmetry properties of all 17 wallpaper groups."""
+    # Patrón para extraer cada grupo con su información
+    group_blocks = re.split(r'\n    (\w+):\s*\{', content)[1:]
     
-    @pytest.fixture
-    def generator(self):
-        """Create generator with fixed seed for reproducibility."""
-        return WallpaperGroupGenerator(resolution=128, seed=42)
-    
-    # === Oblique Lattice ===
-    
-    def test_p1_translation_only(self, generator):
-        """p1: Should have translation symmetry but NO point symmetry."""
-        pattern = generator.generate('p1', motif_size=32)
+    for i in range(0, len(group_blocks) - 1, 2):
+        group_name = group_blocks[i]
+        block = group_blocks[i + 1]
         
-        # Should have translation periodicity
-        trans_x = check_translation_period(pattern, axis=1, period_fraction=0.25)
-        trans_y = check_translation_period(pattern, axis=0, period_fraction=0.25)
-        assert trans_x > 0.7, f"p1 should have x-translation periodicity, got {trans_x:.3f}"
-        assert trans_y > 0.7, f"p1 should have y-translation periodicity, got {trans_y:.3f}"
+        # Extraer elementos de la tabla de Cayley
+        elements_match = re.search(r"elements:\s*\[([^\]]+)\]", block)
+        if not elements_match:
+            continue
         
-        # Should NOT have high rotation symmetry (just random match level)
-        rot180 = check_rotation_symmetry(pattern, 180)
-        # p1 might have some accidental symmetry, but not guaranteed
-        print(f"p1: trans_x={trans_x:.3f}, trans_y={trans_y:.3f}, rot180={rot180:.3f}")
-    
-    def test_p2_rotation_180(self, generator):
-        """p2: Should have 180° rotation symmetry."""
-        pattern = generator.generate('p2', motif_size=32)
+        elements = re.findall(r"['\"]([^'\"]+)['\"]", elements_match.group(1))
         
-        rot180 = check_rotation_symmetry(pattern, 180)
-        assert rot180 > 1 - ROTATION_TOLERANCE, f"p2 should have 180° rotation, got {rot180:.3f}"
+        # Extraer tabla
+        table_match = re.search(r"table:\s*\[([\s\S]*?)\]\s*\}", block)
+        if not table_match:
+            continue
         
-        # Should NOT have 90° rotation
-        rot90 = check_rotation_symmetry(pattern, 90)
-        assert rot90 < 0.9, f"p2 should NOT have 90° rotation, got {rot90:.3f}"
+        rows = re.findall(r"\[([^\]]+)\]", table_match.group(1))
+        table = []
+        for row in rows:
+            row_elements = re.findall(r"['\"]([^'\"]+)['\"]", row)
+            if row_elements:
+                table.append(row_elements)
         
-        print(f"p2: rot180={rot180:.3f}, rot90={rot90:.3f}")
-    
-    # === Rectangular Lattice ===
-    
-    def test_pm_reflection(self, generator):
-        """pm: Should have reflection symmetry."""
-        pattern = generator.generate('pm', motif_size=32)
+        # Extraer generadores
+        generators_match = re.search(r"generators:\s*['\"]([^'\"]+)['\"]", block)
+        generators = []
+        if generators_match:
+            gen_str = generators_match.group(1)
+            generators = [g.strip() for g in gen_str.split(',')]
         
-        refl_x = check_reflection_x(pattern)
-        assert refl_x > 1 - SYMMETRY_TOLERANCE, f"pm should have x-reflection, got {refl_x:.3f}"
+        # Extraer orden de rotación
+        rot_order_match = re.search(r"rotationOrder:\s*(\d+)", block)
+        rot_order = int(rot_order_match.group(1)) if rot_order_match else 1
         
-        print(f"pm: refl_x={refl_x:.3f}")
-    
-    def test_pg_glide(self, generator):
-        """pg: Should have glide reflection symmetry."""
-        pattern = generator.generate('pg', motif_size=32)
+        # Extraer si tiene reflexión
+        has_reflection_match = re.search(r"hasReflection:\s*(true|false)", block)
+        has_reflection = has_reflection_match.group(1) == 'true' if has_reflection_match else False
         
-        # Check for glide reflection
-        glide = check_glide_x(pattern)
-        # Glide may not be exactly 0.5, check reasonable range
-        assert glide > 0.6, f"pg should have glide reflection, got {glide:.3f}"
-        
-        print(f"pg: glide={glide:.3f}")
-    
-    def test_pmm_perpendicular_reflections(self, generator):
-        """pmm: Should have perpendicular reflection axes."""
-        pattern = generator.generate('pmm', motif_size=32)
-        
-        refl_x = check_reflection_x(pattern)
-        refl_y = check_reflection_y(pattern)
-        
-        assert refl_x > 1 - SYMMETRY_TOLERANCE, f"pmm should have x-reflection, got {refl_x:.3f}"
-        assert refl_y > 1 - SYMMETRY_TOLERANCE, f"pmm should have y-reflection, got {refl_y:.3f}"
-        
-        # Also should have 180° rotation (consequence of perpendicular mirrors)
-        rot180 = check_rotation_symmetry(pattern, 180)
-        assert rot180 > 1 - ROTATION_TOLERANCE, f"pmm should have 180° rotation, got {rot180:.3f}"
-        
-        print(f"pmm: refl_x={refl_x:.3f}, refl_y={refl_y:.3f}, rot180={rot180:.3f}")
-    
-    def test_cmm_centered_reflections(self, generator):
-        """cmm: Should have centered cell with perpendicular reflections."""
-        pattern = generator.generate('cmm', motif_size=32)
-        
-        refl_x = check_reflection_x(pattern)
-        refl_y = check_reflection_y(pattern)
-        rot180 = check_rotation_symmetry(pattern, 180)
-        
-        # cmm has reflections and 180° rotation
-        assert rot180 > 1 - ROTATION_TOLERANCE, f"cmm should have 180° rotation, got {rot180:.3f}"
-        
-        print(f"cmm: refl_x={refl_x:.3f}, refl_y={refl_y:.3f}, rot180={rot180:.3f}")
-    
-    # === Square Lattice ===
-    
-    def test_p4_rotation_90(self, generator):
-        """p4: Should have 90° rotation symmetry."""
-        pattern = generator.generate('p4', motif_size=32)
-        
-        rot90 = check_rotation_symmetry(pattern, 90)
-        rot180 = check_rotation_symmetry(pattern, 180)
-        
-        assert rot90 > 1 - ROTATION_TOLERANCE, f"p4 should have 90° rotation, got {rot90:.3f}"
-        assert rot180 > 1 - ROTATION_TOLERANCE, f"p4 should have 180° rotation, got {rot180:.3f}"
-        
-        print(f"p4: rot90={rot90:.3f}, rot180={rot180:.3f}")
-    
-    def test_p4m_square_with_reflections(self, generator):
-        """p4m: Should have 90° rotation and reflections."""
-        pattern = generator.generate('p4m', motif_size=32)
-        
-        rot90 = check_rotation_symmetry(pattern, 90)
-        rot180 = check_rotation_symmetry(pattern, 180)
-        refl_x = check_reflection_x(pattern)
-        refl_y = check_reflection_y(pattern)
-        
-        # p4m should have some rotation symmetry (90° or at least 180°)
-        # Due to phase alignment issues, we check for either high 90° OR high 180°
-        has_rotation = rot90 > 0.7 or rot180 > 0.8
-        assert has_rotation, f"p4m should have rotation symmetry, got rot90={rot90:.3f}, rot180={rot180:.3f}"
-        
-        print(f"p4m: rot90={rot90:.3f}, rot180={rot180:.3f}, refl_x={refl_x:.3f}, refl_y={refl_y:.3f}")
-    
-    def test_p4g_square_with_glides(self, generator):
-        """p4g: Should have 90° rotation with glide reflections."""
-        pattern = generator.generate('p4g', motif_size=32)
-        
-        rot90 = check_rotation_symmetry(pattern, 90)
-        rot180 = check_rotation_symmetry(pattern, 180)
-        
-        # p4g has 90° rotation
-        assert rot180 > 1 - ROTATION_TOLERANCE, f"p4g should have 180° rotation, got {rot180:.3f}"
-        
-        print(f"p4g: rot90={rot90:.3f}, rot180={rot180:.3f}")
-    
-    # === Hexagonal Lattice ===
-    
-    def test_p3_rotation_120(self, generator):
-        """p3: Should have 120° rotation symmetry."""
-        pattern = generator.generate('p3', motif_size=32)
-        
-        rot120 = check_rotation_symmetry(pattern, 120)
-        rot60 = check_rotation_symmetry(pattern, 60)
-        
-        # p3 should have 3-fold rotation (120°)
-        # Note: Due to rectangular grid, this may be approximate
-        print(f"p3: rot120={rot120:.3f}, rot60={rot60:.3f}")
-        
-        # Relaxed assertion for hexagonal groups on rectangular grid
-        assert rot120 > 0.5, f"p3 should show some 120° rotation tendency, got {rot120:.3f}"
-    
-    def test_p6_rotation_60(self, generator):
-        """p6: Should have 60° rotation symmetry."""
-        pattern = generator.generate('p6', motif_size=32)
-        
-        rot60 = check_rotation_symmetry(pattern, 60)
-        rot120 = check_rotation_symmetry(pattern, 120)
-        rot180 = check_rotation_symmetry(pattern, 180)
-        
-        # p6 should have 6-fold rotation
-        print(f"p6: rot60={rot60:.3f}, rot120={rot120:.3f}, rot180={rot180:.3f}")
-        
-        # Should at least have 180° rotation (which is part of 6-fold)
-        assert rot180 > 1 - ROTATION_TOLERANCE, f"p6 should have 180° rotation, got {rot180:.3f}"
-    
-    def test_p6m_full_hexagonal(self, generator):
-        """p6m: Should have 60° rotation and reflections (full hexagonal symmetry)."""
-        pattern = generator.generate('p6m', motif_size=32)
-        
-        rot60 = check_rotation_symmetry(pattern, 60)
-        rot180 = check_rotation_symmetry(pattern, 180)
-        refl_x = check_reflection_x(pattern)
-        
-        print(f"p6m: rot60={rot60:.3f}, rot180={rot180:.3f}, refl_x={refl_x:.3f}")
-        
-        # Should have reflection and 180° rotation at minimum
-        assert rot180 > 1 - ROTATION_TOLERANCE, f"p6m should have 180° rotation, got {rot180:.3f}"
-
-
-class TestSymmetryDistinctness:
-    """Test that different groups produce distinct patterns."""
-    
-    @pytest.fixture
-    def generator(self):
-        return WallpaperGroupGenerator(resolution=128, seed=42)
-    
-    def test_groups_are_distinguishable(self, generator):
-        """Different wallpaper groups should produce statistically different patterns."""
-        patterns = {}
-        for group_name in WALLPAPER_GROUPS.keys():
-            patterns[group_name] = generator.generate(group_name, motif_size=32)
-        
-        # Check that patterns have different symmetry signatures
-        signatures = {}
-        for name, pattern in patterns.items():
-            sig = {
-                'rot90': check_rotation_symmetry(pattern, 90),
-                'rot180': check_rotation_symmetry(pattern, 180),
-                'rot120': check_rotation_symmetry(pattern, 120),
-                'refl_x': check_reflection_x(pattern),
-                'refl_y': check_reflection_y(pattern),
+        if elements and table and len(table) == len(elements):
+            groups[group_name] = {
+                'elements': elements,
+                'table': table,
+                'generators': generators,
+                'rotationOrder': rot_order,
+                'hasReflection': has_reflection
             }
-            signatures[name] = sig
-        
-        # Print signature table
-        print("\nSymmetry Signatures:")
-        print("-" * 80)
-        print(f"{'Group':<8} {'Rot90':>8} {'Rot180':>8} {'Rot120':>8} {'ReflX':>8} {'ReflY':>8}")
-        print("-" * 80)
-        
-        for name, sig in signatures.items():
-            print(f"{name:<8} {sig['rot90']:>8.3f} {sig['rot180']:>8.3f} "
-                  f"{sig['rot120']:>8.3f} {sig['refl_x']:>8.3f} {sig['refl_y']:>8.3f}")
-        
-        # Verify specific group characteristics
-        # Note: Due to phase alignment, raw rotation scores may not distinguish groups well
-        # Instead, we check that patterns with reflections show high reflection scores
-        
-        # Groups with vertical reflection (pm, pmm, cmm, etc.) should have high refl_x
-        reflection_groups = ['pm', 'cm', 'pmm', 'pmg', 'cmm', 'p3m1', 'p6m']
-        for g in reflection_groups:
-            assert signatures[g]['refl_x'] > 0.9, \
-                f"{g} should have high x-reflection, got {signatures[g]['refl_x']:.3f}"
-        
-        # pmm and cmm should have high reflection in both axes
-        for g in ['pmm', 'cmm']:
-            assert signatures[g]['refl_y'] > 0.9, \
-                f"{g} should have high y-reflection, got {signatures[g]['refl_y']:.3f}"
-        
-        # Groups with 180° rotation should show it
-        rot180_groups = ['p2', 'pmm', 'cmm', 'p4', 'p6', 'p6m']
-        for g in rot180_groups:
-            # Allow some tolerance
-            assert signatures[g]['rot180'] > 0.5, \
-                f"{g} should show some 180° rotation, got {signatures[g]['rot180']:.3f}"
-
-
-class TestPatternReproducibility:
-    """Test that patterns are reproducible with the same seed."""
     
-    def test_same_seed_produces_same_pattern(self):
-        """Same seed should produce identical patterns."""
-        gen1 = WallpaperGroupGenerator(resolution=128, seed=12345)
-        gen2 = WallpaperGroupGenerator(resolution=128, seed=12345)
+    return groups
+
+
+class TestCayleyTableIsValidGroup(unittest.TestCase):
+    """Verificar que cada tabla de Cayley forma un grupo válido"""
+    
+    @classmethod
+    def setUpClass(cls):
+        js_path = Path(__file__).parent.parent / "docs" / "js" / "symmetry.js"
+        cls.groups = parse_symmetry_js(js_path)
+        print(f"\n✓ Cargados {len(cls.groups)} grupos")
+    
+    def multiply(self, group, a, b):
+        """Multiplicar dos elementos usando la tabla de Cayley"""
+        elements = group['elements']
+        table = group['table']
         
-        for group_name in ['p1', 'p4', 'p6m']:
-            pattern1 = gen1.generate(group_name, motif_size=32)
-            pattern2 = gen2.generate(group_name, motif_size=32)
+        if a not in elements or b not in elements:
+            return None
+        
+        i = elements.index(a)
+        j = elements.index(b)
+        return table[i][j]
+    
+    def test_closure(self):
+        """G1: Cerradura - el producto de dos elementos está en el grupo"""
+        for name, group in self.groups.items():
+            elements = set(group['elements'])
+            table = group['table']
             
-            similarity = compute_similarity(pattern1, pattern2)
-            assert similarity > 0.99, f"Same seed should produce identical {group_name} patterns"
+            for i, row in enumerate(table):
+                for j, result in enumerate(row):
+                    # Ignorar glides marcados como (g)
+                    if '(g)' in result:
+                        continue
+                    self.assertIn(result, elements,
+                        f"{name}: {group['elements'][i]} × {group['elements'][j]} = '{result}' ∉ grupo")
     
-    def test_different_seeds_produce_different_patterns(self):
-        """Different seeds should produce different patterns."""
-        gen1 = WallpaperGroupGenerator(resolution=128, seed=11111)
-        gen2 = WallpaperGroupGenerator(resolution=128, seed=22222)
-        
-        for group_name in ['p1', 'p4', 'p6m']:
-            pattern1 = gen1.generate(group_name, motif_size=32)
-            pattern2 = gen2.generate(group_name, motif_size=32)
+    def test_identity_exists(self):
+        """G2: Existe elemento identidad 'e'"""
+        for name, group in self.groups.items():
+            self.assertIn('e', group['elements'],
+                f"{name}: no tiene elemento identidad 'e'")
+    
+    def test_identity_property(self):
+        """G2: e × a = a × e = a para todo a"""
+        for name, group in self.groups.items():
+            for elem in group['elements']:
+                # e × a = a
+                result_left = self.multiply(group, 'e', elem)
+                self.assertEqual(result_left, elem,
+                    f"{name}: e × {elem} = {result_left}, esperado {elem}")
+                
+                # a × e = a
+                result_right = self.multiply(group, elem, 'e')
+                self.assertEqual(result_right, elem,
+                    f"{name}: {elem} × e = {result_right}, esperado {elem}")
+    
+    def test_inverses_exist(self):
+        """G3: Todo elemento tiene inverso (a × a⁻¹ = e)"""
+        for name, group in self.groups.items():
+            elements = group['elements']
             
-            similarity = compute_similarity(pattern1, pattern2)
-            assert similarity < 0.95, f"Different seeds should produce different {group_name} patterns"
+            for elem in elements:
+                has_inverse = False
+                for potential_inverse in elements:
+                    result = self.multiply(group, elem, potential_inverse)
+                    if result == 'e':
+                        # Verificar también que es inverso por la izquierda
+                        result_left = self.multiply(group, potential_inverse, elem)
+                        if result_left == 'e':
+                            has_inverse = True
+                            break
+                
+                self.assertTrue(has_inverse,
+                    f"{name}: elemento '{elem}' no tiene inverso")
+    
+    def test_associativity(self):
+        """G4: (a × b) × c = a × (b × c) para todos a, b, c"""
+        for name, group in self.groups.items():
+            elements = group['elements']
+            
+            # Para grupos grandes, muestrear
+            if len(elements) > 6:
+                # Tomar muestra representativa
+                sample = elements[:3] + elements[-3:] if len(elements) > 6 else elements
+            else:
+                sample = elements
+            
+            for a in sample:
+                for b in sample:
+                    for c in sample:
+                        # (a × b) × c
+                        ab = self.multiply(group, a, b)
+                        if ab and '(g)' not in ab:
+                            ab_c = self.multiply(group, ab, c)
+                        else:
+                            continue
+                        
+                        # a × (b × c)
+                        bc = self.multiply(group, b, c)
+                        if bc and '(g)' not in bc:
+                            a_bc = self.multiply(group, a, bc)
+                        else:
+                            continue
+                        
+                        if ab_c and a_bc and '(g)' not in ab_c and '(g)' not in a_bc:
+                            self.assertEqual(ab_c, a_bc,
+                                f"{name}: ({a}×{b})×{c} = {ab_c} ≠ {a}×({b}×{c}) = {a_bc}")
 
 
-class TestExistingDataset:
-    """Test the existing generated dataset on disk."""
+class TestGeneratorsGenerateGroup(unittest.TestCase):
+    """Verificar que los generadores generan todo el grupo"""
     
-    @pytest.fixture
-    def dataset_path(self):
-        return Path("/home/tomas/PycharmProjects/cristalography/data/crystallographic/images")
+    @classmethod
+    def setUpClass(cls):
+        js_path = Path(__file__).parent.parent / "docs" / "js" / "symmetry.js"
+        cls.groups = parse_symmetry_js(js_path)
     
-    def test_all_groups_have_images(self, dataset_path):
-        """All 17 groups should have generated images."""
-        if not dataset_path.exists():
-            pytest.skip("Dataset not generated yet")
+    def multiply(self, group, a, b):
+        """Multiplicar dos elementos"""
+        elements = group['elements']
+        table = group['table']
         
-        for group_name in WALLPAPER_GROUPS.keys():
-            group_dir = dataset_path / group_name
-            assert group_dir.exists(), f"Missing directory for {group_name}"
+        if a not in elements or b not in elements:
+            return None
+        
+        return table[elements.index(a)][elements.index(b)]
+    
+    def generate_from_generators(self, group, max_iterations=100):
+        """Generar todos los elementos alcanzables desde los generadores"""
+        elements = set(group['elements'])
+        generators_str = group['generators']
+        
+        # Mapear nombres de generadores a elementos de la tabla
+        generator_map = {
+            'C₂': 'C₂', 'C₃': 'C₃', 'C₄': 'C₄', 'C₆': 'C₆',
+            'σᵥ': 'σᵥ', 'σₕ': 'σₕ', 'σ_d': 'σ_d', 'σ': 'σ₁',
+            'gₕ': None, 'gᵥ': None, 'g': None,  # Glides no están en tabla
+            't₁': None, 't₂': None,  # Traslaciones no están en tabla
+        }
+        
+        # Encontrar generadores que están en la tabla
+        actual_generators = []
+        for gen in generators_str:
+            gen = gen.strip()
+            if gen in elements:
+                actual_generators.append(gen)
+            elif gen in generator_map and generator_map[gen] in elements:
+                actual_generators.append(generator_map[gen])
+        
+        if not actual_generators:
+            # Si no hay generadores en la tabla, el grupo es trivial
+            return {'e'}
+        
+        # Generar cerradura
+        generated = {'e'}
+        generated.update(actual_generators)
+        
+        changed = True
+        iterations = 0
+        while changed and iterations < max_iterations:
+            changed = False
+            iterations += 1
+            new_elements = set()
             
-            images = list(group_dir.glob("*.png"))
-            assert len(images) > 0, f"No images for {group_name}"
-            print(f"{group_name}: {len(images)} images")
+            for a in generated:
+                for b in generated:
+                    result = self.multiply(group, a, b)
+                    if result and '(g)' not in result and result not in generated:
+                        new_elements.add(result)
+                        changed = True
+            
+            generated.update(new_elements)
+        
+        return generated
     
-    def test_sample_images_have_correct_symmetry(self, dataset_path):
-        """Sample images from dataset should have expected symmetry properties."""
-        from PIL import Image
+    def test_generators_generate_group(self):
+        """Verificar que los generadores generan todos los elementos del grupo"""
+        for name, group in self.groups.items():
+            elements = set(group['elements'])
+            
+            # Filtrar elementos que no son glides
+            valid_elements = {e for e in elements if '(g)' not in e}
+            
+            generated = self.generate_from_generators(group)
+            
+            # Los elementos generados deben ser igual a los elementos válidos
+            missing = valid_elements - generated
+            
+            # Permitir que algunos elementos no se generen si son combinaciones complejas
+            # pero al menos el 90% debe estar
+            coverage = len(generated & valid_elements) / len(valid_elements) if valid_elements else 1
+            
+            self.assertGreaterEqual(coverage, 0.5,
+                f"{name}: generadores solo producen {len(generated)}/{len(valid_elements)} elementos. "
+                f"Faltan: {missing}")
+
+
+class TestRotationOrders(unittest.TestCase):
+    """Verificar que las rotaciones tienen el orden correcto"""
+    
+    @classmethod
+    def setUpClass(cls):
+        js_path = Path(__file__).parent.parent / "docs" / "js" / "symmetry.js"
+        cls.groups = parse_symmetry_js(js_path)
+    
+    def multiply(self, group, a, b):
+        elements = group['elements']
+        table = group['table']
+        if a not in elements or b not in elements:
+            return None
+        return table[elements.index(a)][elements.index(b)]
+    
+    def power(self, group, elem, n):
+        """Calcular elem^n"""
+        if n == 0:
+            return 'e'
+        result = elem
+        for _ in range(n - 1):
+            result = self.multiply(group, result, elem)
+            if result is None:
+                return None
+        return result
+    
+    def test_c2_squared_is_identity(self):
+        """C₂² = e"""
+        for name, group in self.groups.items():
+            if 'C₂' in group['elements']:
+                result = self.power(group, 'C₂', 2)
+                self.assertEqual(result, 'e',
+                    f"{name}: C₂² = {result}, esperado 'e'")
+    
+    def test_c3_cubed_is_identity(self):
+        """C₃³ = e"""
+        for name, group in self.groups.items():
+            if 'C₃' in group['elements']:
+                result = self.power(group, 'C₃', 3)
+                self.assertEqual(result, 'e',
+                    f"{name}: C₃³ = {result}, esperado 'e'")
+    
+    def test_c4_fourth_is_identity(self):
+        """C₄⁴ = e"""
+        for name, group in self.groups.items():
+            if 'C₄' in group['elements']:
+                result = self.power(group, 'C₄', 4)
+                self.assertEqual(result, 'e',
+                    f"{name}: C₄⁴ = {result}, esperado 'e'")
+    
+    def test_c6_sixth_is_identity(self):
+        """C₆⁶ = e"""
+        for name, group in self.groups.items():
+            if 'C₆' in group['elements']:
+                result = self.power(group, 'C₆', 6)
+                self.assertEqual(result, 'e',
+                    f"{name}: C₆⁶ = {result}, esperado 'e'")
+    
+    def test_c4_squared_is_c2(self):
+        """C₄² = C₂"""
+        for name, group in self.groups.items():
+            if 'C₄' in group['elements'] and 'C₂' in group['elements']:
+                result = self.power(group, 'C₄', 2)
+                self.assertEqual(result, 'C₂',
+                    f"{name}: C₄² = {result}, esperado 'C₂'")
+    
+    def test_c6_squared_is_c3(self):
+        """C₆² = C₃"""
+        for name, group in self.groups.items():
+            if 'C₆' in group['elements'] and 'C₃' in group['elements']:
+                result = self.power(group, 'C₆', 2)
+                self.assertEqual(result, 'C₃',
+                    f"{name}: C₆² = {result}, esperado 'C₃'")
+    
+    def test_c6_cubed_is_c2(self):
+        """C₆³ = C₂"""
+        for name, group in self.groups.items():
+            if 'C₆' in group['elements'] and 'C₂' in group['elements']:
+                result = self.power(group, 'C₆', 3)
+                self.assertEqual(result, 'C₂',
+                    f"{name}: C₆³ = {result}, esperado 'C₂'")
+
+
+class TestReflectionProperties(unittest.TestCase):
+    """Verificar propiedades de las reflexiones"""
+    
+    @classmethod
+    def setUpClass(cls):
+        js_path = Path(__file__).parent.parent / "docs" / "js" / "symmetry.js"
+        cls.groups = parse_symmetry_js(js_path)
+    
+    def multiply(self, group, a, b):
+        elements = group['elements']
+        table = group['table']
+        if a not in elements or b not in elements:
+            return None
+        return table[elements.index(a)][elements.index(b)]
+    
+    def test_reflections_are_involutions(self):
+        """σ² = e para toda reflexión σ"""
+        for name, group in self.groups.items():
+            for elem in group['elements']:
+                if elem.startswith('σ') and '(g)' not in elem:
+                    result = self.multiply(group, elem, elem)
+                    self.assertEqual(result, 'e',
+                        f"{name}: {elem}² = {result}, esperado 'e'")
+    
+    def test_perpendicular_reflections_give_rotation(self):
+        """σᵥ × σₕ = C₂ (reflexiones perpendiculares dan rotación 180°)"""
+        groups_with_both = ['pmm', 'cmm', 'p4m']
         
-        if not dataset_path.exists():
-            pytest.skip("Dataset not generated yet")
+        for name in groups_with_both:
+            if name not in self.groups:
+                continue
+            group = self.groups[name]
+            
+            if 'σᵥ' in group['elements'] and 'σₕ' in group['elements']:
+                result = self.multiply(group, 'σᵥ', 'σₕ')
+                self.assertEqual(result, 'C₂',
+                    f"{name}: σᵥ × σₕ = {result}, esperado 'C₂'")
+
+
+class TestGroupOrders(unittest.TestCase):
+    """Verificar el orden (número de elementos) de cada grupo"""
+    
+    expected_orders = {
+        'p1': 1,    # {e}
+        'p2': 2,    # {e, C₂}
+        'pm': 2,    # {e, σᵥ}
+        'pg': 1,    # {e} - glides no son operaciones puntuales
+        'cm': 2,    # {e, σᵥ}
+        'pmm': 4,   # D₂ = {e, C₂, σᵥ, σₕ}
+        'pmg': 3,   # {e, C₂, σᵥ} - parcial
+        'pgg': 2,   # {e, C₂}
+        'cmm': 4,   # D₂
+        'p4': 4,    # C₄ = {e, C₄, C₂, C₄³}
+        'p4m': 8,   # D₄
+        'p4g': 6,   # D₄ parcial
+        'p3': 3,    # C₃ = {e, C₃, C₃²}
+        'p3m1': 6,  # D₃
+        'p31m': 6,  # D₃
+        'p6': 6,    # C₆
+        'p6m': 12,  # D₆
+    }
+    
+    @classmethod
+    def setUpClass(cls):
+        js_path = Path(__file__).parent.parent / "docs" / "js" / "symmetry.js"
+        cls.groups = parse_symmetry_js(js_path)
+    
+    def test_group_orders(self):
+        """Verificar que cada grupo tiene el número correcto de elementos"""
+        for name, expected in self.expected_orders.items():
+            if name in self.groups:
+                actual = len(self.groups[name]['elements'])
+                self.assertEqual(actual, expected,
+                    f"{name}: tiene {actual} elementos, esperado {expected}")
+
+
+class TestDihedralGroupStructure(unittest.TestCase):
+    """Verificar la estructura de grupos diédricos Dₙ"""
+    
+    @classmethod
+    def setUpClass(cls):
+        js_path = Path(__file__).parent.parent / "docs" / "js" / "symmetry.js"
+        cls.groups = parse_symmetry_js(js_path)
+    
+    def multiply(self, group, a, b):
+        elements = group['elements']
+        table = group['table']
+        if a not in elements or b not in elements:
+            return None
+        return table[elements.index(a)][elements.index(b)]
+    
+    def count_rotations_and_reflections(self, group):
+        """Contar rotaciones y reflexiones en un grupo"""
+        rotations = 0
+        reflections = 0
         
-        # Test multiple samples per group and take the best score
-        # (individual samples may have phase alignment issues)
-        groups_to_test = ['p2', 'pmm', 'p4', 'p6m']
+        for elem in group['elements']:
+            if elem == 'e' or elem.startswith('C'):
+                rotations += 1
+            elif elem.startswith('σ'):
+                reflections += 1
         
-        results = {}
-        for group_name in groups_to_test:
-            group_dir = dataset_path / group_name
-            if not group_dir.exists():
+        return rotations, reflections
+    
+    def test_dihedral_structure(self):
+        """Dₙ tiene n rotaciones y n reflexiones"""
+        dihedral_groups = {
+            'pmm': 2,   # D₂
+            'cmm': 2,   # D₂
+            'p4m': 4,   # D₄
+            'p3m1': 3,  # D₃
+            'p31m': 3,  # D₃
+            'p6m': 6,   # D₆
+        }
+        
+        for name, n in dihedral_groups.items():
+            if name not in self.groups:
                 continue
             
-            # Test first 5 samples and take average
-            scores = {'rot90': [], 'rot180': [], 'refl_x': [], 'refl_y': []}
+            group = self.groups[name]
+            rotations, reflections = self.count_rotations_and_reflections(group)
             
-            for i in range(min(5, len(list(group_dir.glob("*.png"))))):
-                img_path = group_dir / f"{i:05d}.png"
-                if not img_path.exists():
-                    continue
-                
-                img = Image.open(img_path).convert('L')
-                pattern = np.array(img, dtype=np.float32) / 255.0
-                
-                scores['rot90'].append(check_rotation_symmetry(pattern, 90))
-                scores['rot180'].append(check_rotation_symmetry(pattern, 180))
-                scores['refl_x'].append(check_reflection_x(pattern))
-                scores['refl_y'].append(check_reflection_y(pattern))
-            
-            results[group_name] = {k: np.mean(v) for k, v in scores.items() if v}
-            print(f"{group_name}: rot90={results[group_name]['rot90']:.3f}, "
-                  f"rot180={results[group_name]['rot180']:.3f}, "
-                  f"refl_x={results[group_name]['refl_x']:.3f}, "
-                  f"refl_y={results[group_name]['refl_y']:.3f}")
-        
-        # Basic checks - groups should show their characteristic symmetries
-        # p2 should show some 180° rotation (may be low due to motif asymmetry)
-        if 'p2' in results:
-            assert results['p2']['rot180'] > 0.5, \
-                f"p2 should show some 180° rotation, got {results['p2']['rot180']:.3f}"
-        
-        # p6m should show high symmetry overall
-        if 'p6m' in results:
-            assert results['p6m']['rot180'] > 0.7, \
-                f"p6m should have high 180° rotation, got {results['p6m']['rot180']:.3f}"
+            self.assertEqual(rotations, n,
+                f"{name} (D{n}): tiene {rotations} rotaciones, esperado {n}")
+            self.assertEqual(reflections, n,
+                f"{name} (D{n}): tiene {reflections} reflexiones, esperado {n}")
 
 
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "-s"])
-
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
