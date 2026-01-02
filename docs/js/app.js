@@ -443,29 +443,36 @@ class WallpaperExplorer {
         const elements = group.cayleyTable.elements;
         const table = group.cayleyTable.table;
         
-        // Map operation names to Cayley table elements
+        // Map operation names to possible Cayley table element names
+        // Some tables use generic symbols (σ), others use specific (σᵥ)
         const opMapping = {
-            'Rotación 60°': 'C₆',
-            'Rotación 90°': 'C₄',
-            'Rotación 120°': 'C₃',
-            'Rotación 180°': 'C₂',
-            'Rotación 240°': 'C₃²',
-            'Rotación 270°': 'C₄³',
-            'Rotación 300°': 'C₆⁵',
-            'Reflexión Vertical': 'σᵥ',
-            'Reflexión Horizontal': 'σₕ',
-            'Reflexión Diagonal': 'σ_d',
-            'Reflexión Anti-diagonal': 'σ_d\'',
-            'Glide Horizontal': 'gₕ',
-            'Glide Vertical': 'gᵥ'
+            'Rotación 60°': ['C₆'],
+            'Rotación 90°': ['C₄'],
+            'Rotación 120°': ['C₃'],
+            'Rotación 180°': ['C₂'],
+            'Rotación 240°': ['C₃²'],
+            'Rotación 270°': ['C₄³'],
+            'Rotación 300°': ['C₆⁵'],
+            'Reflexión Vertical': ['σᵥ', 'σ', 'σ₁'],
+            'Reflexión Horizontal': ['σₕ', 'σ', 'σ₂'],
+            'Reflexión Diagonal': ['σ_d', 'σ', 'σ₁'],
+            'Reflexión Anti-diagonal': ['σ_d\'', 'σ', 'σ₂'],
+            'Glide Horizontal': ['gₕ', 'g'],
+            'Glide Vertical': ['gᵥ', 'g']
         };
         
-        const cayleyElement = opMapping[operationName];
-        if (!cayleyElement) return;
+        const possibleElements = opMapping[operationName];
+        if (!possibleElements) return;
+        
+        // Find which element from the mapping exists in this group's table
+        let opIdx = -1;
+        for (const elem of possibleElements) {
+            opIdx = elements.indexOf(elem);
+            if (opIdx !== -1) break;
+        }
         
         // Find current position in elements array
         const currentIdx = elements.indexOf(this.currentCayleyNode);
-        const opIdx = elements.indexOf(cayleyElement);
         
         if (currentIdx !== -1 && opIdx !== -1) {
             // Apply the operation: new position = current × operation
