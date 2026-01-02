@@ -302,7 +302,7 @@ class WallpaperExplorer {
         // Position nodes in a circle
         const centerX = width / 2;
         const centerY = height / 2 - 10;  // Shift up a bit for legend
-        const radius = Math.min(width, height) / 2 - 60;
+        const radius = n === 1 ? 0 : Math.min(width, height) / 2 - 60;
         
         this.cayleyNodes = [];
         for (let i = 0; i < n; i++) {
@@ -317,8 +317,8 @@ class WallpaperExplorer {
             const isTranslation = label.includes('t') || label.includes('T');
             
             this.cayleyNodes.push({
-                x: centerX + radius * Math.cos(angle),
-                y: centerY + radius * Math.sin(angle),
+                x: n === 1 ? centerX : centerX + radius * Math.cos(angle),
+                y: n === 1 ? centerY : centerY + radius * Math.sin(angle),
                 label: label,
                 isIdentity: isIdentity,
                 isRotation: isRotation,
@@ -329,11 +329,11 @@ class WallpaperExplorer {
             });
         }
         
-        // Draw edges with arrows to show generator connections
+        // Draw edges with arrows to show generator connections (skip for single node)
         ctx.lineWidth = 1.5;
         
         // Draw rotation edges (connecting consecutive rotations)
-        for (let i = 0; i < n; i++) {
+        for (let i = 0; i < n && n > 1; i++) {
             const j = (i + 1) % n;
             
             // Create curved edges for better visualization
@@ -368,8 +368,8 @@ class WallpaperExplorer {
             );
         }
         
-        // Draw reflection edges (involutions connect back to identity)
-        for (let i = 0; i < n; i++) {
+        // Draw reflection edges (involutions connect back to identity) - skip for single node
+        for (let i = 0; i < n && n > 1; i++) {
             if (this.cayleyNodes[i].isReflection && !this.cayleyNodes[i].isIdentity) {
                 ctx.strokeStyle = 'rgba(79, 168, 199, 0.35)';
                 ctx.setLineDash([4, 4]);
