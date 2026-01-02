@@ -1885,30 +1885,17 @@ class WallpaperExplorer {
                 return;
         }
         
-        // Update cumulative matrix for rotation/reflection
-        if (operation === 'rotate' || operation === 'reflect') {
-            this.currentMatrix = SymmetryOps.multiplyMatrices(matrix, this.currentMatrix);
-        }
-        
-        // Check if the cumulative transformation is a valid symmetry of this group
-        // If so, use the original image instead of the transformed one (perfect match!)
-        const isValidSymmetry = this.isCurrentTransformASymmetry(operation, params);
-        
-        if (isValidSymmetry) {
-            // Use original image - this is mathematically identical for valid symmetries
-            this.transformedImageData = this.originalImageData.slice();
-            console.log(`[Symmetry] ${opName} ${opParams} is a valid symmetry - using original image`);
-        } else {
-            // Use the computed transformation
-            this.transformedImageData = newData;
-        }
+        // Always apply the actual transformation - this ensures correct composition
+        this.transformedImageData = newData;
         
         // Update display
         const imageData = this.transformedCtx.createImageData(size, size);
         imageData.data.set(this.transformedImageData);
         this.transformedCtx.putImageData(imageData, 0, 0);
         
+        // Update cumulative matrix for rotation/reflection
         if (operation === 'rotate' || operation === 'reflect') {
+            this.currentMatrix = SymmetryOps.multiplyMatrices(matrix, this.currentMatrix);
             this.updateMatrixDisplay();
         }
         
@@ -1919,87 +1906,11 @@ class WallpaperExplorer {
         // Update difference visualization and get correlation
         const correlation = this.updateDifference();
         
-        // Update Cayley graph for valid symmetries
-        if (isValidSymmetry || correlation >= 0.95) {
+        // Update Cayley graph if high correlation (valid symmetry)
+        // Use 95% threshold to account for interpolation errors in non-90° rotations
+        if (correlation >= 0.95) {
             this.updateCayleyGraphPosition(`${opName} ${opParams}`);
         }
-    }
-    
-    /**
-     * Check if the current cumulative transformation is a valid symmetry of the current group
-     */
-    isCurrentTransformASymmetry(operation, params) {
-        const group = WallpaperGroups[this.currentGroup];
-        if (!group.validSymmetries) return false;
-        
-        // Build the operation description
-        let opDesc = '';
-        if (operation === 'rotate') {
-            const angle = parseFloat(params.angle);
-            opDesc = `rotate_${angle}`;
-        } else if (operation === 'reflect') {
-            opDesc = `reflect_${params.axis}`;
-        } else {
-            // Translations and glides - check separately
-            return false; // For now, only handle point group operations
-        }
-        
-        // Calculate cumulative angle from the matrix
-        // For a rotation matrix: [[cos, -sin], [sin, cos]]
-        // For a reflection matrix: det = -1
-        const m = this.currentMatrix;
-        const det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
-        const isReflection = det < 0;
-        
-        // Get cumulative rotation angle
-        let cumulativeAngle = Math.atan2(m[1][0], m[0][0]) * 180 / Math.PI;
-        if (cumulativeAngle < 0) cumulativeAngle += 360;
-        cumulativeAngle = Math.round(cumulativeAngle) % 360;
-        
-        // Check if this cumulative state matches any valid symmetry
-        for (const sym of group.validSymmetries) {
-            // Check rotations
-            for (const op of sym.ops) {
-                if (op.type === 'rotate') {
-                    // For pure rotations, check if cumulative angle matches
-                    if (!isReflection && cumulativeAngle === op.angle) {
-                        return true;
-                    }
-                }
-                if (op.type === 'reflect') {
-                    // For reflections, check if we have a reflection
-                    if (isReflection) {
-                        // Check the reflection axis matches
-                        if (operation === 'reflect' && params.axis === op.axis) {
-                            return true;
-                        }
-                        // For accumulated reflections (odd number), still valid
-                        return true;
-                    }
-                }
-            }
-            // Identity (no ops) matches when cumulative angle is 0 and no reflection
-            if (sym.ops.length === 0 && cumulativeAngle === 0 && !isReflection) {
-                return true;
-            }
-        }
-        
-        // Additional check: for groups with high rotation order,
-        // all multiples of the base angle are valid
-        const rotationOrder = group.rotationOrder;
-        if (rotationOrder > 1 && !isReflection) {
-            const baseAngle = 360 / rotationOrder;
-            if (cumulativeAngle % baseAngle === 0) {
-                return true;
-            }
-        }
-        
-        // For groups with reflections, any reflection is valid if the group has reflection
-        if (isReflection && group.hasReflection) {
-            return true;
-        }
-        
-        return false;
     }
     
     translateAxis(axis) {
