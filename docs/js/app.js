@@ -1610,41 +1610,50 @@ class WallpaperExplorer {
     }
     
     /**
-     * pm: Vertical reflection centered - pattern symmetric under vertical reflection
+     * pm: Múltiples ejes de reflexión verticales paralelos (notación **)
+     * Técnica: crear celda [M | flipLR(M)] y repetir (tile)
      */
     generatePMCentered(size, rng) {
+        const cellSize = Math.floor(size / 4);  // 4 repeticiones
         const pattern = new Float32Array(size * size);
-        const cx = (size - 1) / 2;
         
-        const elements = [];
-        const numElements = 5 + Math.floor(rng() * 3);
+        // Crear motivo asimétrico
+        const motif = new Float32Array(cellSize * cellSize);
+        const numElements = 3 + Math.floor(rng() * 3);
         
-        for (let i = 0; i < numElements; i++) {
-            elements.push({
-                x: rng() * size * 0.5,  // Left half only
-                y: rng() * size,
-                sigma: 15 + rng() * 25,
-                amplitude: 0.3 + rng() * 0.7
-            });
+        for (let k = 0; k < numElements; k++) {
+            const cx = rng() * cellSize;
+            const cy = rng() * cellSize;
+            const sigma = rng() * cellSize / 4 + cellSize / 10;
+            const amplitude = rng() * 0.5 + 0.5;
+            
+            for (let y = 0; y < cellSize; y++) {
+                for (let x = 0; x < cellSize; x++) {
+                    const dx = x - cx;
+                    const dy = y - cy;
+                    motif[y * cellSize + x] += amplitude * Math.exp(-(dx*dx + dy*dy) / (2 * sigma * sigma));
+                }
+            }
         }
         
+        // Crear celda [M | flipLR(M)] - esto crea DOS ejes de reflexión por celda
+        const cellWidth = cellSize * 2;
+        const cell = new Float32Array(cellSize * cellWidth);
+        
+        for (let y = 0; y < cellSize; y++) {
+            for (let x = 0; x < cellSize; x++) {
+                const val = motif[y * cellSize + x];
+                cell[y * cellWidth + x] = val;                          // M
+                cell[y * cellWidth + (cellWidth - 1 - x)] = val;        // flipLR(M)
+            }
+        }
+        
+        // Tile la celda para llenar el patrón
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
-                let value = 0;
-                
-                for (const el of elements) {
-                    // Original
-                    const dx1 = x - el.x;
-                    const dy1 = y - el.y;
-                    value += el.amplitude * Math.exp(-(dx1*dx1 + dy1*dy1)/(2*el.sigma*el.sigma));
-                    
-                    // Reflected across vertical center
-                    const dx2 = x - (2*cx - el.x);
-                    const dy2 = y - el.y;
-                    value += el.amplitude * Math.exp(-(dx2*dx2 + dy2*dy2)/(2*el.sigma*el.sigma));
-                }
-                
-                pattern[y * size + x] = value;
+                const cy = y % cellSize;
+                const cx = x % cellWidth;
+                pattern[y * size + x] = cell[cy * cellWidth + cx];
             }
         }
         
