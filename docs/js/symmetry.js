@@ -194,16 +194,16 @@ const ImageTransform = {
     },
     
     /**
-     * General rotation with high-precision nearest neighbor
-     * For patterns with exact symmetry, this preserves the mathematical relationship
+     * General rotation with bilinear interpolation for smooth results
+     * Uses high-quality interpolation to minimize discretization errors
      */
     _rotateGeneral(imageData, angleDeg, width, height) {
         const rad = (angleDeg * Math.PI) / 180;
         const cos = Math.cos(rad);
         const sin = Math.sin(rad);
-        // Use exact center for symmetry preservation
-        const centerX = (width - 1) / 2;
-        const centerY = (height - 1) / 2;
+        // Use center at width/2, height/2 to match pattern generation
+        const centerX = width / 2;
+        const centerY = height / 2;
         
         const newData = new Uint8ClampedArray(imageData.length);
         
@@ -213,27 +213,49 @@ const ImageTransform = {
                 const dx = x - centerX;
                 const dy = y - centerY;
                 
-                // Inverse rotate to find source (exact formula)
+                // Inverse rotate to find source
                 const srcX = cos * dx + sin * dy + centerX;
                 const srcY = -sin * dx + cos * dy + centerY;
                 
                 const destIdx = (y * width + x) * 4;
                 
-                // Use nearest neighbor for exact pixel mapping
-                // This preserves symmetry for patterns generated with the same center
-                const nearX = Math.round(srcX);
-                const nearY = Math.round(srcY);
+                // Bilinear interpolation for smooth results
+                const x0 = Math.floor(srcX);
+                const y0 = Math.floor(srcY);
+                const x1 = x0 + 1;
+                const y1 = y0 + 1;
                 
-                if (nearX >= 0 && nearX < width && nearY >= 0 && nearY < height) {
+                if (x0 >= 0 && x1 < width && y0 >= 0 && y1 < height) {
+                    const fx = srcX - x0;
+                    const fy = srcY - y0;
+                    const fx1 = 1 - fx;
+                    const fy1 = 1 - fy;
+                    
+                    const idx00 = (y0 * width + x0) * 4;
+                    const idx10 = (y0 * width + x1) * 4;
+                    const idx01 = (y1 * width + x0) * 4;
+                    const idx11 = (y1 * width + x1) * 4;
+                    
+                    for (let c = 0; c < 4; c++) {
+                        const v = imageData[idx00 + c] * fx1 * fy1 +
+                                  imageData[idx10 + c] * fx * fy1 +
+                                  imageData[idx01 + c] * fx1 * fy +
+                                  imageData[idx11 + c] * fx * fy;
+                        newData[destIdx + c] = Math.round(v);
+                    }
+                } else if (srcX >= -0.5 && srcX < width - 0.5 && srcY >= -0.5 && srcY < height - 0.5) {
+                    // Edge case - use nearest neighbor
+                    const nearX = Math.max(0, Math.min(width - 1, Math.round(srcX)));
+                    const nearY = Math.max(0, Math.min(height - 1, Math.round(srcY)));
                     const srcIdx = (nearY * width + nearX) * 4;
                     newData[destIdx] = imageData[srcIdx];
                     newData[destIdx + 1] = imageData[srcIdx + 1];
                     newData[destIdx + 2] = imageData[srcIdx + 2];
                     newData[destIdx + 3] = imageData[srcIdx + 3];
                 } else {
-                    // Out of bounds - use edge value for continuity
-                    const clampX = Math.max(0, Math.min(width - 1, nearX));
-                    const clampY = Math.max(0, Math.min(height - 1, nearY));
+                    // Out of bounds - use edge clamping
+                    const clampX = Math.max(0, Math.min(width - 1, Math.round(srcX)));
+                    const clampY = Math.max(0, Math.min(height - 1, Math.round(srcY)));
                     const srcIdx = (clampY * width + clampX) * 4;
                     newData[destIdx] = imageData[srcIdx];
                     newData[destIdx + 1] = imageData[srcIdx + 1];
