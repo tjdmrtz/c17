@@ -146,6 +146,9 @@ class WallpaperExplorer {
         
         // Update Cayley table
         this.updateCayleyTable(group);
+        
+        // Update Cayley graph
+        this.drawCayleyGraph(group);
     }
     
     updateValidSymmetries(group) {
@@ -199,6 +202,145 @@ class WallpaperExplorer {
         
         html += '</tbody></table>';
         container.innerHTML = html;
+    }
+    
+    /**
+     * Draw Cayley graph for the group's point group
+     * Nodes are group elements, edges show generator connections
+     */
+    drawCayleyGraph(group) {
+        const canvas = document.getElementById('cayleyGraph');
+        if (!canvas) return;
+        
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // Clear
+        ctx.fillStyle = '#0f1419';
+        ctx.fillRect(0, 0, width, height);
+        
+        if (!group.cayleyTable || typeof group.cayleyTable.table === 'string') {
+            ctx.fillStyle = '#5c6874';
+            ctx.font = '12px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText('Grafo no disponible para este grupo', width/2, height/2);
+            return;
+        }
+        
+        const elements = group.cayleyTable.elements;
+        const n = elements.length;
+        
+        // Position nodes in a circle
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = Math.min(width, height) / 2 - 50;
+        
+        const nodes = [];
+        for (let i = 0; i < n; i++) {
+            const angle = (i * 2 * Math.PI / n) - Math.PI / 2;  // Start from top
+            nodes.push({
+                x: centerX + radius * Math.cos(angle),
+                y: centerY + radius * Math.sin(angle),
+                label: elements[i],
+                isIdentity: elements[i] === 'e',
+                isRotation: elements[i].startsWith('C') || elements[i].includes('₄') || elements[i].includes('₃') || elements[i].includes('₂') || elements[i].includes('₆'),
+                isReflection: elements[i].startsWith('σ') || elements[i] === 'σᵥ' || elements[i] === 'σₕ' || elements[i].includes('σ')
+            });
+        }
+        
+        // Draw edges (connections between elements via generators)
+        ctx.lineWidth = 1.5;
+        
+        // Connect each element to what it produces when composed with generators
+        // For simplicity, connect consecutive elements and identity to all
+        for (let i = 0; i < n; i++) {
+            // Connect to next element (cyclic structure)
+            const j = (i + 1) % n;
+            
+            // Gradient line
+            const gradient = ctx.createLinearGradient(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y);
+            
+            if (nodes[i].isRotation || nodes[j].isRotation) {
+                gradient.addColorStop(0, 'rgba(183, 148, 246, 0.6)');
+                gradient.addColorStop(1, 'rgba(183, 148, 246, 0.3)');
+            } else if (nodes[i].isReflection || nodes[j].isReflection) {
+                gradient.addColorStop(0, 'rgba(79, 168, 199, 0.6)');
+                gradient.addColorStop(1, 'rgba(79, 168, 199, 0.3)');
+            } else {
+                gradient.addColorStop(0, 'rgba(0, 212, 170, 0.6)');
+                gradient.addColorStop(1, 'rgba(0, 212, 170, 0.3)');
+            }
+            
+            ctx.strokeStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+        }
+        
+        // Draw special connections for reflections (involutions: σ² = e)
+        for (let i = 0; i < n; i++) {
+            if (nodes[i].isReflection) {
+                // Connect back to identity
+                ctx.strokeStyle = 'rgba(79, 168, 199, 0.3)';
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.moveTo(nodes[i].x, nodes[i].y);
+                ctx.lineTo(nodes[0].x, nodes[0].y);  // e is usually first
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+        
+        // Draw nodes
+        const nodeRadius = 20;
+        
+        for (const node of nodes) {
+            // Glow effect
+            const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeRadius * 1.5);
+            
+            if (node.isIdentity) {
+                glow.addColorStop(0, 'rgba(0, 212, 170, 0.4)');
+                glow.addColorStop(1, 'rgba(0, 212, 170, 0)');
+            } else if (node.isRotation) {
+                glow.addColorStop(0, 'rgba(183, 148, 246, 0.4)');
+                glow.addColorStop(1, 'rgba(183, 148, 246, 0)');
+            } else {
+                glow.addColorStop(0, 'rgba(79, 168, 199, 0.4)');
+                glow.addColorStop(1, 'rgba(79, 168, 199, 0)');
+            }
+            
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, nodeRadius * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Node circle
+            ctx.fillStyle = node.isIdentity ? '#00d4aa' : 
+                           node.isRotation ? '#b794f6' : '#4fa8c7';
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Border
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Label
+            ctx.fillStyle = '#0f1419';
+            ctx.font = 'bold 11px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(node.label, node.x, node.y);
+        }
+        
+        // Title
+        ctx.fillStyle = '#8b98a5';
+        ctx.font = '10px Outfit';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Grupo Puntual: orden ${n}`, width/2, height - 10);
     }
     
     updateMatrixDisplay() {
