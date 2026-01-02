@@ -27,8 +27,9 @@ class WallpaperExplorer {
         this.transformedCtx = this.transformedCanvas.getContext('2d');
         this.differenceCtx = this.differenceCanvas.getContext('2d');
         
-        // Canvas size
-        this.canvasSize = 300;
+        // Canvas size - use ODD number so center pixel is exact (150,150)
+        // This ensures perfect 90°/180°/270° rotations
+        this.canvasSize = 301;
         
         this.init();
     }
@@ -1136,8 +1137,8 @@ class WallpaperExplorer {
      */
     generateP3(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         // Create asymmetric elements in first 120° sector
         const elements = [];
@@ -1193,8 +1194,8 @@ class WallpaperExplorer {
         const base = this.generateP3(size, rng);
         const pattern = new Float32Array(size * size);
         
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
@@ -1230,8 +1231,8 @@ class WallpaperExplorer {
      */
     generateP6(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         // Create elements in first 60° sector
         const elements = [];
@@ -1415,8 +1416,8 @@ class WallpaperExplorer {
      */
     generatePMMCentered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         // Use cos(2nθ) for exact 2-fold symmetry + reflections
         const n1 = 1 + Math.floor(rng() * 2);
@@ -1451,8 +1452,8 @@ class WallpaperExplorer {
      */
     generatePGGCentered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         // Use cos(2nθ) for exact 2-fold symmetry
         const n1 = 1 + Math.floor(rng() * 2);
@@ -1494,8 +1495,8 @@ class WallpaperExplorer {
      */
     generateP4Centered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         // Use cos(4nθ) for exact 4-fold rotational symmetry
         const n1 = 1 + Math.floor(rng() * 2);  // 1-2, so 4n = 4 or 8
@@ -1533,8 +1534,8 @@ class WallpaperExplorer {
      */
     generateP4MCentered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         const n1 = 1 + Math.floor(rng() * 2);
         const amp1 = 0.2 + rng() * 0.2;
@@ -1569,8 +1570,8 @@ class WallpaperExplorer {
      */
     generateP4GCentered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         const n1 = 1 + Math.floor(rng() * 2);
         const amp1 = 0.15 + rng() * 0.2;
@@ -1605,8 +1606,8 @@ class WallpaperExplorer {
      */
     generateP3Centered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         // Use only multiples of 3 for angular frequency to preserve 3-fold symmetry
         // cos(3n*θ) is invariant under 120° rotation for any integer n
@@ -1648,8 +1649,8 @@ class WallpaperExplorer {
      */
     generateP3M1Centered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         const n1 = 1 + Math.floor(rng() * 2);
         const amp1 = 0.2 + rng() * 0.3;
@@ -1685,8 +1686,8 @@ class WallpaperExplorer {
      */
     generateP31MCentered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         const n1 = 1 + Math.floor(rng() * 2);
         const amp1 = 0.15 + rng() * 0.25;
@@ -1722,8 +1723,8 @@ class WallpaperExplorer {
      */
     generateP6Centered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         // Only multiples of 6 for angular frequency to preserve 6-fold symmetry
         const n1 = 1 + Math.floor(rng() * 2);  // 1-2, so 6n = 6 or 12
@@ -1761,8 +1762,8 @@ class WallpaperExplorer {
      */
     generateP6MCentered(size, rng) {
         const pattern = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
         
         const n1 = 1 + Math.floor(rng() * 2);
         const amp1 = 0.2 + rng() * 0.2;

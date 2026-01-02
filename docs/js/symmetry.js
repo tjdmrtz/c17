@@ -123,17 +123,20 @@ const ImageTransform = {
     
     /**
      * Exact 90° rotation (counter-clockwise)
+     * Classic formula: pixel at (x,y) comes from pixel at (y, width-1-x)
+     * This is a perfect pixel-to-pixel mapping, no interpolation needed
      */
     _rotate90(imageData, width, height) {
         const newData = new Uint8ClampedArray(imageData.length);
         
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                // (x, y) -> (y, width - 1 - x)
-                const srcIdx = (y * width + x) * 4;
-                const destX = y;
-                const destY = width - 1 - x;
-                const destIdx = (destY * width + destX) * 4;
+                // For 90° CCW: new(x,y) = old(y, width-1-x)
+                const srcX = y;
+                const srcY = width - 1 - x;
+                
+                const destIdx = (y * width + x) * 4;
+                const srcIdx = (srcY * width + srcX) * 4;
                 
                 newData[destIdx] = imageData[srcIdx];
                 newData[destIdx + 1] = imageData[srcIdx + 1];
@@ -148,16 +151,20 @@ const ImageTransform = {
     /**
      * Exact 180° rotation
      */
+    /**
+     * Exact 180° rotation
+     * Classic formula: pixel at (x,y) comes from pixel at (width-1-x, height-1-y)
+     */
     _rotate180(imageData, width, height) {
         const newData = new Uint8ClampedArray(imageData.length);
         
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                // (x, y) -> (width - 1 - x, height - 1 - y)
-                const srcIdx = (y * width + x) * 4;
-                const destX = width - 1 - x;
-                const destY = height - 1 - y;
-                const destIdx = (destY * width + destX) * 4;
+                const srcX = width - 1 - x;
+                const srcY = height - 1 - y;
+                
+                const destIdx = (y * width + x) * 4;
+                const srcIdx = (srcY * width + srcX) * 4;
                 
                 newData[destIdx] = imageData[srcIdx];
                 newData[destIdx + 1] = imageData[srcIdx + 1];
@@ -172,16 +179,20 @@ const ImageTransform = {
     /**
      * Exact 270° rotation (counter-clockwise) = 90° clockwise
      */
+    /**
+     * Exact 270° rotation (= 90° clockwise)
+     * Classic formula: pixel at (x,y) comes from pixel at (height-1-y, x)
+     */
     _rotate270(imageData, width, height) {
         const newData = new Uint8ClampedArray(imageData.length);
         
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                // (x, y) -> (height - 1 - y, x)
-                const srcIdx = (y * width + x) * 4;
-                const destX = height - 1 - y;
-                const destY = x;
-                const destIdx = (destY * width + destX) * 4;
+                const srcX = height - 1 - y;
+                const srcY = x;
+                
+                const destIdx = (y * width + x) * 4;
+                const srcIdx = (srcY * width + srcX) * 4;
                 
                 newData[destIdx] = imageData[srcIdx];
                 newData[destIdx + 1] = imageData[srcIdx + 1];
@@ -201,9 +212,10 @@ const ImageTransform = {
         const rad = (angleDeg * Math.PI) / 180;
         const cos = Math.cos(rad);
         const sin = Math.sin(rad);
-        // Use center at width/2, height/2 to match pattern generation
-        const centerX = width / 2;
-        const centerY = height / 2;
+        // Use center at (width-1)/2, (height-1)/2 to match pattern generation
+        // For odd sizes (301), this is exactly the center pixel (150, 150)
+        const centerX = (width - 1) / 2;
+        const centerY = (height - 1) / 2;
         
         const newData = new Uint8ClampedArray(imageData.length);
         
