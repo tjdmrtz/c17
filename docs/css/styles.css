@@ -1125,6 +1125,7 @@ canvas {
 .legend-color.rotation { background: var(--crystal-amethyst); }
 .legend-color.reflection { background: var(--crystal-sapphire); }
 .legend-color.identity { background: var(--crystal-emerald); }
+.legend-color.glide { background: #20c997; }
 .legend-color.current { background: var(--crystal-amber); }
 
 /* Cayley Graph Explanation */

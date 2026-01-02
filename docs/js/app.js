@@ -275,14 +275,25 @@ class WallpaperExplorer {
         this.cayleyNodes = [];
         for (let i = 0; i < n; i++) {
             const angle = (i * 2 * Math.PI / n) - Math.PI / 2;  // Start from top
+            const label = elements[i];
+            
+            // Determine node type based on explicit symbols
+            const isIdentity = label === 'e';
+            const isRotation = label.startsWith('C') && !label.includes('σ');
+            const isReflection = label.includes('σ');
+            const isGlide = label.includes('g') && !label.includes('σ');
+            const isTranslation = label.includes('t') || label.includes('T');
+            
             this.cayleyNodes.push({
                 x: centerX + radius * Math.cos(angle),
                 y: centerY + radius * Math.sin(angle),
-                label: elements[i],
-                isIdentity: elements[i] === 'e',
-                isRotation: elements[i].startsWith('C') || elements[i].includes('₄') || elements[i].includes('₃') || elements[i].includes('₂') || elements[i].includes('₆'),
-                isReflection: elements[i].startsWith('σ') || elements[i] === 'σᵥ' || elements[i] === 'σₕ' || elements[i].includes('σ') || elements[i].includes('g'),
-                isCurrent: elements[i] === highlightNode
+                label: label,
+                isIdentity: isIdentity,
+                isRotation: isRotation,
+                isReflection: isReflection,
+                isGlide: isGlide,
+                isTranslation: isTranslation,
+                isCurrent: label === highlightNode
             });
         }
         
@@ -348,8 +359,15 @@ class WallpaperExplorer {
             const glowRadius = node.isCurrent ? nodeRadius * 2.5 : nodeRadius * 1.5;
             const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowRadius);
             
+            // Color scheme:
+            // - Identity: Green (#00d4aa)
+            // - Rotation: Purple (#b794f6)
+            // - Reflection: Blue (#4fa8c7)
+            // - Glide: Teal (#20c997)
+            // - Translation: Gray (#8b98a5)
+            // - Current: Amber (#f6b93b)
+            
             if (node.isCurrent) {
-                // Strong glow for current position
                 glow.addColorStop(0, 'rgba(246, 185, 59, 0.8)');
                 glow.addColorStop(0.5, 'rgba(246, 185, 59, 0.3)');
                 glow.addColorStop(1, 'rgba(246, 185, 59, 0)');
@@ -359,6 +377,12 @@ class WallpaperExplorer {
             } else if (node.isRotation) {
                 glow.addColorStop(0, 'rgba(183, 148, 246, 0.4)');
                 glow.addColorStop(1, 'rgba(183, 148, 246, 0)');
+            } else if (node.isGlide) {
+                glow.addColorStop(0, 'rgba(32, 201, 151, 0.4)');
+                glow.addColorStop(1, 'rgba(32, 201, 151, 0)');
+            } else if (node.isTranslation) {
+                glow.addColorStop(0, 'rgba(139, 152, 165, 0.4)');
+                glow.addColorStop(1, 'rgba(139, 152, 165, 0)');
             } else {
                 glow.addColorStop(0, 'rgba(79, 168, 199, 0.4)');
                 glow.addColorStop(1, 'rgba(79, 168, 199, 0)');
@@ -374,11 +398,15 @@ class WallpaperExplorer {
             if (node.isCurrent) {
                 nodeColor = '#f6b93b';  // Amber for current
             } else if (node.isIdentity) {
-                nodeColor = '#00d4aa';
+                nodeColor = '#00d4aa';  // Green
             } else if (node.isRotation) {
-                nodeColor = '#b794f6';
+                nodeColor = '#b794f6';  // Purple
+            } else if (node.isGlide) {
+                nodeColor = '#20c997';  // Teal
+            } else if (node.isTranslation) {
+                nodeColor = '#8b98a5';  // Gray
             } else {
-                nodeColor = '#4fa8c7';
+                nodeColor = '#4fa8c7';  // Blue (reflection)
             }
             
             ctx.fillStyle = nodeColor;
@@ -444,7 +472,7 @@ class WallpaperExplorer {
         const table = group.cayleyTable.table;
         
         // Map operation names to possible Cayley table element names
-        // Some tables use generic symbols (σ), others use specific (σᵥ)
+        // Uses specific symbols like σᵥ, σₕ, gₕ, gᵥ for clarity
         const opMapping = {
             'Rotación 60°': ['C₆'],
             'Rotación 90°': ['C₄'],
@@ -453,12 +481,12 @@ class WallpaperExplorer {
             'Rotación 240°': ['C₃²'],
             'Rotación 270°': ['C₄³'],
             'Rotación 300°': ['C₆⁵'],
-            'Reflexión Vertical': ['σᵥ', 'σ', 'σ₁'],
-            'Reflexión Horizontal': ['σₕ', 'σ', 'σ₂'],
-            'Reflexión Diagonal': ['σ_d', 'σ', 'σ₁'],
-            'Reflexión Anti-diagonal': ['σ_d\'', 'σ', 'σ₂'],
-            'Glide Horizontal': ['gₕ', 'g'],
-            'Glide Vertical': ['gᵥ', 'g']
+            'Reflexión Vertical': ['σᵥ', 'σᵥ(0°)'],
+            'Reflexión Horizontal': ['σₕ', 'σₕ(0°)'],
+            'Reflexión Diagonal': ['σ_d'],
+            'Reflexión Anti-diagonal': ['σ_d\''],
+            'Glide Horizontal': ['gₕ'],
+            'Glide Vertical': ['gᵥ']
         };
         
         const possibleElements = opMapping[operationName];
@@ -1980,11 +2008,13 @@ class WallpaperExplorer {
         this.operations.push({ name: opName, params: opParams });
         this.updateHistory();
         
-        // Update difference visualization
-        this.updateDifference();
+        // Update difference visualization and get correlation
+        const correlation = this.updateDifference();
         
-        // Update Cayley graph to show current position
-        this.updateCayleyGraphPosition(`${opName} ${opParams}`);
+        // Only update Cayley graph if the operation is a valid symmetry (high correlation)
+        if (correlation >= 0.98) {
+            this.updateCayleyGraphPosition(`${opName} ${opParams}`);
+        }
     }
     
     translateAxis(axis) {
@@ -2022,19 +2052,20 @@ class WallpaperExplorer {
         
         // Color code the correlation
         correlationValue.classList.remove('low', 'medium');
-        if (percent === 100) {
-            // EXACT match - it's a symmetry!
+        if (percent >= 98) {
+            // EXACT match or very close - it's a symmetry!
             document.querySelector('.canvas-wrapper.difference').classList.add('match-animation');
             setTimeout(() => {
                 document.querySelector('.canvas-wrapper.difference').classList.remove('match-animation');
             }, 1000);
-        } else if (percent >= 98) {
-            // Very close (possible rounding)
         } else if (percent < 50) {
             correlationValue.classList.add('low');
         } else if (percent < 85) {
             correlationValue.classList.add('medium');
         }
+        
+        // Return correlation for use in Cayley graph updates
+        return Math.abs(correlation);
     }
     
     updateHistory() {

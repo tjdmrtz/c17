@@ -509,7 +509,7 @@ const WallpaperGroups = {
         hasGlide: false,
         description: 'Ejes de reflexión paralelos. Sin rotación.',
         pointGroupOrder: 2,
-        generators: 't₁, t₂, σ',
+        generators: 't₁, t₂, σᵥ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
             { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] },
@@ -517,10 +517,10 @@ const WallpaperGroups = {
         ],
         invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'g'],
         cayleyTable: {
-            elements: ['e', 'σ'],
+            elements: ['e', 'σᵥ'],
             table: [
-                ['e', 'σ'],
-                ['σ', 'e']
+                ['e', 'σᵥ'],
+                ['σᵥ', 'e']
             ]
         },
         explanation: `
@@ -537,19 +537,19 @@ const WallpaperGroups = {
         hasGlide: true,
         description: 'Reflexiones deslizantes (glide) paralelas. Sin reflexión pura.',
         pointGroupOrder: 1,
-        generators: 't₁, t₂, g',
+        generators: 't₁, t₂, gₕ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'g × g = T', ops: [{type: 'glide', axis: 'vertical'}, {type: 'glide', axis: 'vertical'}] },
+            { name: 'gₕ × gₕ = T', ops: [{type: 'glide', axis: 'horizontal'}, {type: 'glide', axis: 'horizontal'}] },
             { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] }
         ],
         invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'σ_v', 'σ_h'],
         cayleyTable: {
-            elements: ['e', 'g', 'g²=t'],
+            elements: ['e', 'gₕ', 'gₕ²=t'],
             table: [
-                ['e', 'g', 't'],
-                ['g', 't', 'gt'],
-                ['t', 'gt', 't²']
+                ['e', 'gₕ', 't'],
+                ['gₕ', 't', 'gₕt'],
+                ['t', 'gₕt', 't²']
             ]
         },
         explanation: `
@@ -570,18 +570,18 @@ const WallpaperGroups = {
         hasGlide: true,
         description: 'Reflexión + glide entre ejes de reflexión.',
         pointGroupOrder: 2,
-        generators: 't₁, t₂, σ',
+        generators: 't₁, t₂, σᵥ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'σᵥ (reflexión)', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] },
             { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] }
         ],
         invalidSymmetries: ['C2', 'C3', 'C4', 'C6'],
         cayleyTable: {
-            elements: ['e', 'σ'],
+            elements: ['e', 'σᵥ'],
             table: [
-                ['e', 'σ'],
-                ['σ', 'e']
+                ['e', 'σᵥ'],
+                ['σᵥ', 'e']
             ]
         },
         explanation: `
@@ -629,20 +629,20 @@ const WallpaperGroups = {
         hasGlide: true,
         description: 'Reflexión + glide perpendicular.',
         pointGroupOrder: 4,
-        generators: 't₁, t₂, σ, g',
+        generators: 't₁, t₂, σᵥ, gₕ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] },
-            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] }
+            { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] }
         ],
         invalidSymmetries: ['C3', 'C4', 'C6'],
         cayleyTable: {
-            elements: ['e', 'σ', 'g', 'C₂'],
+            elements: ['e', 'σᵥ', 'gₕ', 'C₂'],
             table: [
-                ['e', 'σ', 'g', 'C₂'],
-                ['σ', 'e', 'C₂', 'g'],
-                ['g', 'C₂', 't', 'σt'],
-                ['C₂', 'g', 'σt', 't']
+                ['e', 'σᵥ', 'gₕ', 'C₂'],
+                ['σᵥ', 'e', 'C₂', 'gₕ'],
+                ['gₕ', 'C₂', 't', 'σᵥt'],
+                ['C₂', 'gₕ', 'σᵥt', 't']
             ]
         },
         explanation: `
@@ -854,23 +854,23 @@ const WallpaperGroups = {
         hasGlide: false,
         description: 'Rotación 120° + reflexiones a través de centros.',
         pointGroupOrder: 6,
-        generators: 't₁, t₂, C₃, σ',
+        generators: 't₁, t₂, C₃, σᵥ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'C₃', ops: [{type: 'rotate', angle: 120}] },
-            { name: 'C₃²', ops: [{type: 'rotate', angle: 240}] },
-            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] }
+            { name: 'C₃ (120°)', ops: [{type: 'rotate', angle: 120}] },
+            { name: 'C₃² (240°)', ops: [{type: 'rotate', angle: 240}] },
+            { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] }
         ],
         invalidSymmetries: ['C2', 'C4', 'C6'],
         cayleyTable: {
-            elements: ['e', 'C₃', 'C₃²', 'σ₁', 'σ₂', 'σ₃'],
+            elements: ['e', 'C₃', 'C₃²', 'σᵥ(0°)', 'σᵥ(60°)', 'σᵥ(120°)'],
             table: [
-                ['e', 'C₃', 'C₃²', 'σ₁', 'σ₂', 'σ₃'],
-                ['C₃', 'C₃²', 'e', 'σ₃', 'σ₁', 'σ₂'],
-                ['C₃²', 'e', 'C₃', 'σ₂', 'σ₃', 'σ₁'],
-                ['σ₁', 'σ₂', 'σ₃', 'e', 'C₃', 'C₃²'],
-                ['σ₂', 'σ₃', 'σ₁', 'C₃²', 'e', 'C₃'],
-                ['σ₃', 'σ₁', 'σ₂', 'C₃', 'C₃²', 'e']
+                ['e', 'C₃', 'C₃²', 'σᵥ(0°)', 'σᵥ(60°)', 'σᵥ(120°)'],
+                ['C₃', 'C₃²', 'e', 'σᵥ(120°)', 'σᵥ(0°)', 'σᵥ(60°)'],
+                ['C₃²', 'e', 'C₃', 'σᵥ(60°)', 'σᵥ(120°)', 'σᵥ(0°)'],
+                ['σᵥ(0°)', 'σᵥ(60°)', 'σᵥ(120°)', 'e', 'C₃', 'C₃²'],
+                ['σᵥ(60°)', 'σᵥ(120°)', 'σᵥ(0°)', 'C₃²', 'e', 'C₃'],
+                ['σᵥ(120°)', 'σᵥ(0°)', 'σᵥ(60°)', 'C₃', 'C₃²', 'e']
             ]
         },
         explanation: `
@@ -887,23 +887,23 @@ const WallpaperGroups = {
         hasGlide: false,
         description: 'Rotación 120° + reflexiones entre centros.',
         pointGroupOrder: 6,
-        generators: 't₁, t₂, C₃, σ',
+        generators: 't₁, t₂, C₃, σₕ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'C₃', ops: [{type: 'rotate', angle: 120}] },
-            { name: 'C₃²', ops: [{type: 'rotate', angle: 240}] },
-            { name: 'σₕ', ops: [{type: 'reflect', axis: 'horizontal'}] }
+            { name: 'C₃ (120°)', ops: [{type: 'rotate', angle: 120}] },
+            { name: 'C₃² (240°)', ops: [{type: 'rotate', angle: 240}] },
+            { name: 'σₕ (reflexión horizontal)', ops: [{type: 'reflect', axis: 'horizontal'}] }
         ],
         invalidSymmetries: ['C2', 'C4', 'C6'],
         cayleyTable: {
-            elements: ['e', 'C₃', 'C₃²', 'σ₁', 'σ₂', 'σ₃'],
+            elements: ['e', 'C₃', 'C₃²', 'σₕ(0°)', 'σₕ(60°)', 'σₕ(120°)'],
             table: [
-                ['e', 'C₃', 'C₃²', 'σ₁', 'σ₂', 'σ₃'],
-                ['C₃', 'C₃²', 'e', 'σ₃', 'σ₁', 'σ₂'],
-                ['C₃²', 'e', 'C₃', 'σ₂', 'σ₃', 'σ₁'],
-                ['σ₁', 'σ₂', 'σ₃', 'e', 'C₃', 'C₃²'],
-                ['σ₂', 'σ₃', 'σ₁', 'C₃²', 'e', 'C₃'],
-                ['σ₃', 'σ₁', 'σ₂', 'C₃', 'C₃²', 'e']
+                ['e', 'C₃', 'C₃²', 'σₕ(0°)', 'σₕ(60°)', 'σₕ(120°)'],
+                ['C₃', 'C₃²', 'e', 'σₕ(120°)', 'σₕ(0°)', 'σₕ(60°)'],
+                ['C₃²', 'e', 'C₃', 'σₕ(60°)', 'σₕ(120°)', 'σₕ(0°)'],
+                ['σₕ(0°)', 'σₕ(60°)', 'σₕ(120°)', 'e', 'C₃', 'C₃²'],
+                ['σₕ(60°)', 'σₕ(120°)', 'σₕ(0°)', 'C₃²', 'e', 'C₃'],
+                ['σₕ(120°)', 'σₕ(0°)', 'σₕ(60°)', 'C₃', 'C₃²', 'e']
             ]
         },
         explanation: `
@@ -956,21 +956,21 @@ const WallpaperGroups = {
         hasGlide: true,
         description: 'Máxima simetría: C₆ + 6 reflexiones.',
         pointGroupOrder: 12,
-        generators: 't₁, t₂, C₆, σ',
+        generators: 't₁, t₂, C₆, σᵥ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'C₆', ops: [{type: 'rotate', angle: 60}] },
-            { name: 'C₃', ops: [{type: 'rotate', angle: 120}] },
-            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] },
-            { name: 'C₃²', ops: [{type: 'rotate', angle: 240}] },
-            { name: 'C₆⁵', ops: [{type: 'rotate', angle: 300}] },
-            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] },
-            { name: 'σₕ', ops: [{type: 'reflect', axis: 'horizontal'}] }
+            { name: 'C₆ (60°)', ops: [{type: 'rotate', angle: 60}] },
+            { name: 'C₃ (120°)', ops: [{type: 'rotate', angle: 120}] },
+            { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] },
+            { name: 'C₃² (240°)', ops: [{type: 'rotate', angle: 240}] },
+            { name: 'C₆⁵ (300°)', ops: [{type: 'rotate', angle: 300}] },
+            { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'σₕ (reflexión horizontal)', ops: [{type: 'reflect', axis: 'horizontal'}] }
         ],
         invalidSymmetries: ['C4'],
         cayleyTable: {
-            elements: ['e', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'σ₁', 'σ₂', 'σ₃', 'σ₄', 'σ₅', 'σ₆'],
-            table: 'D₆ (dihedral group of order 12) - tabla completa disponible en referencias'
+            elements: ['e', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'σᵥ', 'σ(30°)', 'σₕ', 'σ(90°)', 'σ(120°)', 'σ(150°)'],
+            table: 'D₆ (grupo diédrico orden 12) - 6 rotaciones + 6 reflexiones'
         },
         explanation: `
             El grupo p6m tiene la MÁXIMA simetría de todos los 17 grupos.
