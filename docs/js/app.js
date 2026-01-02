@@ -471,6 +471,10 @@ class WallpaperExplorer {
         const elements = group.cayleyTable.elements;
         const table = group.cayleyTable.table;
         
+        // Parse the operation name more robustly
+        // Format: "Rotación 120°" or "Reflexión Vertical" etc.
+        const opName = operationName.trim();
+        
         // Map operation names to possible Cayley table element names
         // Uses specific symbols like σᵥ, σₕ, gₕ, gᵥ for clarity
         const opMapping = {
@@ -481,33 +485,52 @@ class WallpaperExplorer {
             'Rotación 240°': ['C₃²'],
             'Rotación 270°': ['C₄³'],
             'Rotación 300°': ['C₆⁵'],
-            'Reflexión Vertical': ['σᵥ', 'σᵥ(0°)'],
-            'Reflexión Horizontal': ['σₕ', 'σₕ(0°)'],
-            'Reflexión Diagonal': ['σ_d'],
-            'Reflexión Anti-diagonal': ['σ_d\''],
-            'Glide Horizontal': ['gₕ'],
-            'Glide Vertical': ['gᵥ']
+            'Reflexión Vertical': ['σᵥ', 'σᵥ(0°)', 'σ'],
+            'Reflexión Horizontal': ['σₕ', 'σₕ(0°)', 'σ'],
+            'Reflexión Diagonal': ['σ_d', 'σ_d\''],
+            'Reflexión Anti-diagonal': ['σ_d\'', 'σ_d'],
+            'Glide Horizontal': ['gₕ', 'g'],
+            'Glide Vertical': ['gᵥ', 'g']
         };
         
-        const possibleElements = opMapping[operationName];
-        if (!possibleElements) return;
+        const possibleElements = opMapping[opName];
+        if (!possibleElements) {
+            console.log(`[Cayley] No mapping for operation: "${opName}"`);
+            return;
+        }
         
         // Find which element from the mapping exists in this group's table
         let opIdx = -1;
+        let matchedElement = null;
         for (const elem of possibleElements) {
             opIdx = elements.indexOf(elem);
-            if (opIdx !== -1) break;
+            if (opIdx !== -1) {
+                matchedElement = elem;
+                break;
+            }
+        }
+        
+        if (opIdx === -1) {
+            console.log(`[Cayley] No element found for "${opName}" in elements:`, elements);
+            return;
         }
         
         // Find current position in elements array
         const currentIdx = elements.indexOf(this.currentCayleyNode);
         
-        if (currentIdx !== -1 && opIdx !== -1) {
-            // Apply the operation: new position = current × operation
-            this.currentCayleyNode = table[currentIdx][opIdx];
-            // Redraw graph with new highlight
-            this.drawCayleyGraph(group, this.currentCayleyNode);
+        if (currentIdx === -1) {
+            console.log(`[Cayley] Current node "${this.currentCayleyNode}" not found in elements`);
+            return;
         }
+        
+        // Apply the operation: new position = current × operation
+        const previousNode = this.currentCayleyNode;
+        this.currentCayleyNode = table[currentIdx][opIdx];
+        
+        console.log(`[Cayley] Transition: ${previousNode} × ${matchedElement} = ${this.currentCayleyNode}`);
+        
+        // Redraw graph with new highlight
+        this.drawCayleyGraph(group, this.currentCayleyNode);
     }
     
     updateMatrixDisplay() {
@@ -1950,6 +1973,138 @@ class WallpaperExplorer {
         // Redraw Cayley graph with identity highlighted
         const group = WallpaperGroups[this.currentGroup];
         this.drawCayleyGraph(group, 'e');
+    }
+    
+    /**
+     * Test all Cayley table transitions for the current group.
+     * Call from console: app.testCayleyTransitions()
+     */
+    testCayleyTransitions() {
+        const group = WallpaperGroups[this.currentGroup];
+        if (!group.cayleyTable || typeof group.cayleyTable.table === 'string') {
+            console.log('No Cayley table defined for this group');
+            return;
+        }
+        
+        const elements = group.cayleyTable.elements;
+        const table = group.cayleyTable.table;
+        
+        console.log(`\n=== Testing Cayley Table for ${this.currentGroup} ===`);
+        console.log('Elements:', elements);
+        
+        let passed = 0;
+        let failed = 0;
+        
+        // Test: e × x = x for all x (identity property)
+        console.log('\n--- Identity property: e × x = x ---');
+        for (let i = 0; i < elements.length; i++) {
+            const result = table[0][i]; // e is at index 0
+            const expected = elements[i];
+            if (result === expected) {
+                console.log(`✓ e × ${expected} = ${result}`);
+                passed++;
+            } else {
+                console.error(`✗ e × ${expected} = ${result} (expected ${expected})`);
+                failed++;
+            }
+        }
+        
+        // Test: x × e = x for all x (identity property from right)
+        console.log('\n--- Right identity: x × e = x ---');
+        for (let i = 0; i < elements.length; i++) {
+            const result = table[i][0]; // e is at index 0
+            const expected = elements[i];
+            if (result === expected) {
+                console.log(`✓ ${expected} × e = ${result}`);
+                passed++;
+            } else {
+                console.error(`✗ ${expected} × e = ${result} (expected ${expected})`);
+                failed++;
+            }
+        }
+        
+        // Test: Each element should have an inverse (x × x⁻¹ = e)
+        console.log('\n--- Inverse property: ∃x⁻¹ such that x × x⁻¹ = e ---');
+        for (let i = 0; i < elements.length; i++) {
+            let hasInverse = false;
+            let inverseName = '';
+            for (let j = 0; j < elements.length; j++) {
+                if (table[i][j] === 'e') {
+                    hasInverse = true;
+                    inverseName = elements[j];
+                    break;
+                }
+            }
+            if (hasInverse) {
+                console.log(`✓ ${elements[i]} has inverse: ${inverseName}`);
+                passed++;
+            } else {
+                console.error(`✗ ${elements[i]} has no inverse!`);
+                failed++;
+            }
+        }
+        
+        // Test closure: all results should be in elements
+        console.log('\n--- Closure: all products are in the group ---');
+        for (let i = 0; i < elements.length; i++) {
+            for (let j = 0; j < elements.length; j++) {
+                const result = table[i][j];
+                if (elements.includes(result)) {
+                    passed++;
+                } else {
+                    console.error(`✗ ${elements[i]} × ${elements[j]} = "${result}" NOT in elements!`);
+                    failed++;
+                }
+            }
+        }
+        
+        console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`);
+        
+        // Also log the full table for visual inspection
+        console.log('Full Cayley table:');
+        console.table(table.map((row, i) => {
+            const obj = { 'a×b': elements[i] };
+            row.forEach((val, j) => obj[elements[j]] = val);
+            return obj;
+        }));
+        
+        return { passed, failed };
+    }
+    
+    /**
+     * Test all groups' Cayley tables
+     * Call from console: app.testAllCayleyTables()
+     */
+    testAllCayleyTables() {
+        const results = {};
+        const groups = Object.keys(WallpaperGroups);
+        
+        for (const groupName of groups) {
+            const group = WallpaperGroups[groupName];
+            if (!group.cayleyTable || typeof group.cayleyTable.table === 'string') {
+                results[groupName] = { skipped: true };
+                continue;
+            }
+            
+            const originalGroup = this.currentGroup;
+            this.currentGroup = groupName;
+            const result = this.testCayleyTransitions();
+            this.currentGroup = originalGroup;
+            results[groupName] = result;
+        }
+        
+        console.log('\n=== SUMMARY ===');
+        for (const [group, result] of Object.entries(results)) {
+            if (result.skipped) {
+                console.log(`${group}: SKIPPED (no table)`);
+            } else if (result.failed === 0) {
+                console.log(`${group}: ✓ ALL PASSED (${result.passed})`);
+            } else {
+                console.error(`${group}: ✗ ${result.failed} FAILED`);
+            }
+        }
+        
+        return results;
     }
 }
 

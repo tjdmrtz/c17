@@ -367,6 +367,11 @@ const ImageTransform = {
 
     /**
      * Calculate difference image between two image data arrays
+     * Uses color coding:
+     * - Bright green: exact match (diff = 0)
+     * - Light green: near match (diff <= 5, interpolation errors)
+     * - Yellow: small difference (diff <= 15)
+     * - Red: significant difference (diff > 15)
      */
     difference(imageData1, imageData2, width, height) {
         const diffData = new Uint8ClampedArray(imageData1.length);
@@ -381,21 +386,26 @@ const ImageTransform = {
             const maxDiff = Math.max(diffR, diffG, diffB);
             
             if (maxDiff === 0) {
-                // EXACT match - show in bright green
-                diffData[i] = 50;
-                diffData[i + 1] = 200;
-                diffData[i + 2] = 100;
-            } else if (maxDiff <= 2) {
-                // Near match (rounding errors) - show in light green
-                diffData[i] = 80;
+                // EXACT match - bright green
+                diffData[i] = 30;
                 diffData[i + 1] = 180;
                 diffData[i + 2] = 80;
-            } else {
-                // Difference - show in red gradient proportional to difference
-                const intensity = Math.min(255, maxDiff * 2);
-                diffData[i] = 150 + intensity / 3;
-                diffData[i + 1] = 50;
+            } else if (maxDiff <= 5) {
+                // Near match (interpolation errors) - light green/teal
+                diffData[i] = 50;
+                diffData[i + 1] = 160;
+                diffData[i + 2] = 120;
+            } else if (maxDiff <= 15) {
+                // Small difference - yellow/orange
+                diffData[i] = 200;
+                diffData[i + 1] = 150;
                 diffData[i + 2] = 50;
+            } else {
+                // Significant difference - red, intensity proportional to diff
+                const intensity = Math.min(255, maxDiff * 1.5);
+                diffData[i] = 150 + intensity / 2.5;
+                diffData[i + 1] = 40;
+                diffData[i + 2] = 40;
             }
             diffData[i + 3] = 255;
         }
@@ -404,46 +414,58 @@ const ImageTransform = {
     },
 
     /**
-     * Calculate EXACT correlation between two images
+     * Calculate similarity between two images
+     * Uses normalized difference with tolerance for interpolation errors
+     * Returns 1.0 for exact/near matches, lower values for differences
      */
     correlation(imageData1, imageData2) {
-        // First check for exact match
-        let exactMatch = true;
-        let sum1 = 0, sum2 = 0, sumSq1 = 0, sumSq2 = 0, sumProd = 0;
+        let exactPixels = 0;
+        let nearPixels = 0;
+        let totalWeightedDiff = 0;
         let n = 0;
         
+        // Tolerance for interpolation errors (RGB value difference per channel)
+        const exactTolerance = 1;   // Rounding errors
+        const nearTolerance = 5;    // Interpolation errors
+        
         for (let i = 0; i < imageData1.length; i += 4) {
-            // Use grayscale value for correlation
-            const v1 = (imageData1[i] + imageData1[i + 1] + imageData1[i + 2]) / 3;
-            const v2 = (imageData2[i] + imageData2[i + 1] + imageData2[i + 2]) / 3;
+            const diffR = Math.abs(imageData1[i] - imageData2[i]);
+            const diffG = Math.abs(imageData1[i + 1] - imageData2[i + 1]);
+            const diffB = Math.abs(imageData1[i + 2] - imageData2[i + 2]);
             
-            // Check exact match (allowing for tiny rounding)
-            if (Math.abs(v1 - v2) > 0.5) {
-                exactMatch = false;
+            const maxDiff = Math.max(diffR, diffG, diffB);
+            
+            if (maxDiff <= exactTolerance) {
+                exactPixels++;
+            } else if (maxDiff <= nearTolerance) {
+                nearPixels++;
+                totalWeightedDiff += maxDiff / 255;
+            } else {
+                totalWeightedDiff += maxDiff / 255;
             }
-            
-            sum1 += v1;
-            sum2 += v2;
-            sumSq1 += v1 * v1;
-            sumSq2 += v2 * v2;
-            sumProd += v1 * v2;
             n++;
         }
         
-        // If exact match, return 1
-        if (exactMatch) {
+        // If all pixels are exact match, return 1
+        if (exactPixels === n) {
             return 1.0;
         }
         
-        const mean1 = sum1 / n;
-        const mean2 = sum2 / n;
-        const var1 = sumSq1 / n - mean1 * mean1;
-        const var2 = sumSq2 / n - mean2 * mean2;
-        const cov = sumProd / n - mean1 * mean2;
+        // If most pixels are exact or near, and no significant errors
+        const matchRatio = (exactPixels + nearPixels) / n;
+        if (matchRatio > 0.99 && totalWeightedDiff < n * 0.01) {
+            return 1.0;  // Effectively identical
+        }
         
-        if (var1 <= 0 || var2 <= 0) return 1;
+        // Calculate similarity: weight exact matches heavily
+        // Each near pixel contributes proportionally less
+        const similarity = (exactPixels + nearPixels * 0.9) / n;
         
-        return cov / Math.sqrt(var1 * var2);
+        // Also factor in the average difference for non-matching pixels
+        const avgDiff = totalWeightedDiff / Math.max(1, n - exactPixels);
+        const adjustedSimilarity = similarity * (1 - avgDiff * 0.1);
+        
+        return Math.max(0, Math.min(1, adjustedSimilarity));
     }
 };
 
