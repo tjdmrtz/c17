@@ -1901,10 +1901,13 @@ class WallpaperExplorer {
         // This avoids interpolation artifacts while keeping composition correct
         const displayData = isValidSymmetry ? this.originalImageData : this.transformedImageData;
         
-        // Update display
-        const imageData = this.transformedCtx.createImageData(size, size);
-        imageData.data.set(displayData);
-        this.transformedCtx.putImageData(imageData, 0, 0);
+        // Animate the transformation visually
+        this.animateTransformation(operation, params, () => {
+            // Update display after animation
+            const imageData = this.transformedCtx.createImageData(size, size);
+            imageData.data.set(displayData);
+            this.transformedCtx.putImageData(imageData, 0, 0);
+        });
         
         if (operation === 'rotate' || operation === 'reflect') {
             this.updateMatrixDisplay();
@@ -1975,6 +1978,65 @@ class WallpaperExplorer {
             'antidiagonal': 'Anti-diagonal'
         };
         return translations[axis] || axis;
+    }
+    
+    /**
+     * Animate the transformation visually before showing the result
+     */
+    animateTransformation(operation, params, callback) {
+        const wrapper = document.getElementById('transformedWrapper');
+        if (!wrapper) {
+            callback();
+            return;
+        }
+        
+        // Remove any existing animation classes
+        wrapper.classList.remove(
+            'animating', 'rotating-60', 'rotating-90', 'rotating-120', 
+            'rotating-180', 'rotating-240', 'rotating-270', 'rotating-300',
+            'reflecting-vertical', 'reflecting-horizontal', 
+            'reflecting-diagonal', 'reflecting-antidiagonal',
+            'translating', 'gliding-horizontal', 'gliding-vertical'
+        );
+        
+        // Force reflow to restart animation
+        void wrapper.offsetWidth;
+        
+        // Determine animation class based on operation
+        let animationClass = '';
+        let duration = 600; // ms
+        
+        switch (operation) {
+            case 'rotate':
+                const angle = parseFloat(params.angle);
+                animationClass = `rotating-${angle}`;
+                duration = 600;
+                break;
+                
+            case 'reflect':
+                animationClass = `reflecting-${params.axis}`;
+                duration = 500;
+                break;
+                
+            case 'translate':
+                animationClass = 'translating';
+                duration = 600;
+                break;
+                
+            case 'glide':
+                animationClass = `gliding-${params.axis}`;
+                duration = 700;
+                break;
+        }
+        
+        // Add animation classes
+        wrapper.classList.add('animating', animationClass);
+        
+        // Execute callback after animation completes
+        setTimeout(() => {
+            wrapper.classList.remove('animating', animationClass);
+            callback();
+        }, duration);
     }
     
     updateDifference(isValidSymmetry = false) {

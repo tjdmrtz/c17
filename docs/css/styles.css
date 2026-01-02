@@ -979,6 +979,161 @@ canvas {
     animation: glow 1s ease-in-out;
 }
 
+/* === Transformation Animations === */
+
+/* Container for animated canvas */
+.canvas-animated {
+    position: relative;
+    overflow: hidden;
+}
+
+.canvas-animated canvas {
+    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transform-origin: center center;
+}
+
+/* Rotation animations */
+.canvas-animated.rotating-60 canvas {
+    animation: rotate60 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.rotating-90 canvas {
+    animation: rotate90 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.rotating-120 canvas {
+    animation: rotate120 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.rotating-180 canvas {
+    animation: rotate180 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.rotating-240 canvas {
+    animation: rotate240 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.rotating-270 canvas {
+    animation: rotate270 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.rotating-300 canvas {
+    animation: rotate300 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes rotate60 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-60deg); }
+}
+@keyframes rotate90 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-90deg); }
+}
+@keyframes rotate120 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-120deg); }
+}
+@keyframes rotate180 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-180deg); }
+}
+@keyframes rotate240 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-240deg); }
+}
+@keyframes rotate270 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-270deg); }
+}
+@keyframes rotate300 {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-300deg); }
+}
+
+/* Reflection animations */
+.canvas-animated.reflecting-vertical canvas {
+    animation: reflectVertical 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.reflecting-horizontal canvas {
+    animation: reflectHorizontal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.reflecting-diagonal canvas {
+    animation: reflectDiagonal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.canvas-animated.reflecting-antidiagonal canvas {
+    animation: reflectAntidiagonal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes reflectVertical {
+    0% { transform: scaleX(1); }
+    50% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+}
+@keyframes reflectHorizontal {
+    0% { transform: scaleY(1); }
+    50% { transform: scaleY(0); }
+    100% { transform: scaleY(1); }
+}
+@keyframes reflectDiagonal {
+    0% { transform: rotate(0deg) scaleX(1); }
+    50% { transform: rotate(45deg) scaleX(0); }
+    100% { transform: rotate(0deg) scaleX(1); }
+}
+@keyframes reflectAntidiagonal {
+    0% { transform: rotate(0deg) scaleX(1); }
+    50% { transform: rotate(-45deg) scaleX(0); }
+    100% { transform: rotate(0deg) scaleX(1); }
+}
+
+/* Translation animations */
+.canvas-animated.translating canvas {
+    animation: translate 0.6s ease-in-out forwards;
+}
+
+@keyframes translate {
+    0% { transform: translateX(0) translateY(0); opacity: 1; }
+    50% { transform: translateX(30px) translateY(30px); opacity: 0.5; }
+    100% { transform: translateX(0) translateY(0); opacity: 1; }
+}
+
+/* Glide animation (reflection + translation) */
+.canvas-animated.gliding-horizontal canvas {
+    animation: glideHorizontal 0.7s ease-in-out forwards;
+}
+.canvas-animated.gliding-vertical canvas {
+    animation: glideVertical 0.7s ease-in-out forwards;
+}
+
+@keyframes glideHorizontal {
+    0% { transform: scaleY(1) translateX(0); }
+    33% { transform: scaleY(0) translateX(0); }
+    66% { transform: scaleY(1) translateX(20px); }
+    100% { transform: scaleY(1) translateX(0); }
+}
+@keyframes glideVertical {
+    0% { transform: scaleX(1) translateY(0); }
+    33% { transform: scaleX(0) translateY(0); }
+    66% { transform: scaleX(1) translateY(20px); }
+    100% { transform: scaleX(1) translateY(0); }
+}
+
+/* Visual feedback glow during animation */
+.canvas-animated.animating::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 10px;
+    background: linear-gradient(45deg, 
+        var(--crystal-emerald), 
+        var(--crystal-sapphire), 
+        var(--crystal-amethyst),
+        var(--crystal-emerald));
+    background-size: 300% 300%;
+    animation: borderGlow 0.6s ease-in-out;
+    z-index: -1;
+    opacity: 0.6;
+}
+
+@keyframes borderGlow {
+    0% { background-position: 0% 50%; opacity: 0.6; }
+    50% { background-position: 100% 50%; opacity: 0.9; }
+    100% { background-position: 0% 50%; opacity: 0; }
+}
+
 /* Loading state */
 .loading {
     position: relative;
