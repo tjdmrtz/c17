@@ -109,6 +109,16 @@ class WallpaperExplorer {
         document.getElementById('groupName').textContent = groupName;
         document.getElementById('groupDescription').textContent = group.description;
         
+        // Update alternate names (Schönflies, Hermann-Mauguin, Orbifold)
+        const altNamesContainer = document.getElementById('groupAltNames');
+        if (altNamesContainer && group.altNames) {
+            altNamesContainer.innerHTML = `
+                <span class="alt-name schoenflies">${group.altNames.schoenflies}</span>
+                <span class="alt-name hm">${group.altNames.hm}</span>
+                <span class="alt-name orbifold">${group.altNames.orbifold}</span>
+            `;
+        }
+        
         // Update properties
         const propsContainer = document.getElementById('groupProperties');
         propsContainer.innerHTML = `

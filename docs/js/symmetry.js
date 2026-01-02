@@ -461,6 +461,7 @@ const ImageTransform = {
 const WallpaperGroups = {
     p1: {
         name: 'p1',
+        altNames: { schoenflies: 'C₁', hm: '1', orbifold: 'o' },
         lattice: 'Oblicuo',
         rotationOrder: 1,
         hasReflection: false,
@@ -492,6 +493,7 @@ const WallpaperGroups = {
     },
     p2: {
         name: 'p2',
+        altNames: { schoenflies: 'C₂', hm: '2', orbifold: '2222' },
         lattice: 'Oblicuo',
         rotationOrder: 2,
         hasReflection: false,
@@ -522,6 +524,7 @@ const WallpaperGroups = {
     },
     pm: {
         name: 'pm',
+        altNames: { schoenflies: 'Cₛ', hm: 'm', orbifold: '**' },
         lattice: 'Rectangular',
         rotationOrder: 1,
         hasReflection: true,
@@ -550,6 +553,7 @@ const WallpaperGroups = {
     },
     pg: {
         name: 'pg',
+        altNames: { schoenflies: 'C₁', hm: '1', orbifold: '××' },
         lattice: 'Rectangular',
         rotationOrder: 1,
         hasReflection: false,
@@ -580,6 +584,7 @@ const WallpaperGroups = {
     },
     cm: {
         name: 'cm',
+        altNames: { schoenflies: 'Cₛ', hm: 'm', orbifold: '*×' },
         lattice: 'Rectangular (centrado)',
         rotationOrder: 1,
         hasReflection: true,
@@ -608,6 +613,7 @@ const WallpaperGroups = {
     },
     pmm: {
         name: 'pmm',
+        altNames: { schoenflies: 'D₂', hm: '2mm', orbifold: '*2222' },
         lattice: 'Rectangular',
         rotationOrder: 2,
         hasReflection: true,
@@ -639,6 +645,7 @@ const WallpaperGroups = {
     },
     pmg: {
         name: 'pmg',
+        altNames: { schoenflies: 'D₂', hm: '2mm', orbifold: '22*' },
         lattice: 'Rectangular',
         rotationOrder: 2,
         hasReflection: true,
@@ -669,6 +676,7 @@ const WallpaperGroups = {
     },
     pgg: {
         name: 'pgg',
+        altNames: { schoenflies: 'C₂', hm: '2', orbifold: '22×' },
         lattice: 'Rectangular',
         rotationOrder: 2,
         hasReflection: false,
@@ -697,6 +705,7 @@ const WallpaperGroups = {
     },
     cmm: {
         name: 'cmm',
+        altNames: { schoenflies: 'D₂', hm: '2mm', orbifold: '2*22' },
         lattice: 'Rectangular (centrado)',
         rotationOrder: 2,
         hasReflection: true,
@@ -727,6 +736,7 @@ const WallpaperGroups = {
     },
     p4: {
         name: 'p4',
+        altNames: { schoenflies: 'C₄', hm: '4', orbifold: '442' },
         lattice: 'Cuadrado',
         rotationOrder: 4,
         hasReflection: false,
@@ -759,6 +769,7 @@ const WallpaperGroups = {
     },
     p4m: {
         name: 'p4m',
+        altNames: { schoenflies: 'D₄', hm: '4mm', orbifold: '*442' },
         lattice: 'Cuadrado',
         rotationOrder: 4,
         hasReflection: true,
@@ -798,6 +809,7 @@ const WallpaperGroups = {
     },
     p4g: {
         name: 'p4g',
+        altNames: { schoenflies: 'D₄', hm: '4mm', orbifold: '4*2' },
         lattice: 'Cuadrado',
         rotationOrder: 4,
         hasReflection: true,
@@ -834,6 +846,7 @@ const WallpaperGroups = {
     },
     p3: {
         name: 'p3',
+        altNames: { schoenflies: 'C₃', hm: '3', orbifold: '333' },
         lattice: 'Hexagonal',
         rotationOrder: 3,
         hasReflection: false,
@@ -864,6 +877,7 @@ const WallpaperGroups = {
     },
     p3m1: {
         name: 'p3m1',
+        altNames: { schoenflies: 'D₃', hm: '3m', orbifold: '*333' },
         lattice: 'Hexagonal',
         rotationOrder: 3,
         hasReflection: true,
@@ -897,6 +911,7 @@ const WallpaperGroups = {
     },
     p31m: {
         name: 'p31m',
+        altNames: { schoenflies: 'D₃', hm: '3m', orbifold: '3*3' },
         lattice: 'Hexagonal',
         rotationOrder: 3,
         hasReflection: true,
@@ -930,6 +945,7 @@ const WallpaperGroups = {
     },
     p6: {
         name: 'p6',
+        altNames: { schoenflies: 'C₆', hm: '6', orbifold: '632' },
         lattice: 'Hexagonal',
         rotationOrder: 6,
         hasReflection: false,
@@ -966,6 +982,7 @@ const WallpaperGroups = {
     },
     p6m: {
         name: 'p6m',
+        altNames: { schoenflies: 'D₆', hm: '6mm', orbifold: '*632' },
         lattice: 'Hexagonal',
         rotationOrder: 6,
         hasReflection: true,

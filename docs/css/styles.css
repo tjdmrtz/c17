@@ -260,6 +260,55 @@ body::before {
     letter-spacing: -0.02em;
 }
 
+.group-alt-names {
+    display: flex;
+    gap: 0.75rem;
+    margin: 0.25rem 0 0.5rem 0;
+    flex-wrap: wrap;
+}
+
+.alt-name {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-subtle);
+}
+
+.alt-name.schoenflies {
+    color: var(--crystal-amethyst);
+    border-color: rgba(183, 148, 246, 0.3);
+}
+
+.alt-name.hm {
+    color: var(--crystal-sapphire);
+    border-color: rgba(79, 168, 199, 0.3);
+}
+
+.alt-name.orbifold {
+    color: var(--crystal-amber);
+    border-color: rgba(246, 185, 59, 0.3);
+}
+
+.alt-name::before {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    margin-right: 0.25rem;
+}
+
+.alt-name.schoenflies::before {
+    content: "Schönflies: ";
+}
+
+.alt-name.hm::before {
+    content: "H-M: ";
+}
+
+.alt-name.orbifold::before {
+    content: "Orbifold: ";
+}
+
 .group-description {
     color: var(--text-secondary);
     font-size: 0.95rem;
