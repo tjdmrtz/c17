@@ -336,11 +336,11 @@ class WallpaperExplorer {
             ctx.fillText(node.label, node.x, node.y);
         }
         
-        // Title
+        // Title at bottom
         ctx.fillStyle = '#8b98a5';
         ctx.font = '10px Outfit';
         ctx.textAlign = 'center';
-        ctx.fillText(`Grupo Puntual: orden ${n}`, width/2, height - 10);
+        ctx.fillText(`Grupo Puntual: ${n} elementos`, width/2, height - 8);
     }
     
     updateMatrixDisplay() {
