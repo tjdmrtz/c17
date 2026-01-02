@@ -1112,6 +1112,12 @@ canvas {
     background: var(--bg-primary);
     border-radius: 6px;
     border: 1px solid var(--border-subtle);
+    /* Fixed display size - internal resolution is scaled for HiDPI */
+    width: 320px;
+    height: 250px;
+    /* Crisp rendering on zoom */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 .graph-legend {

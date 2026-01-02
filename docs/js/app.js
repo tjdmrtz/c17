@@ -249,8 +249,29 @@ class WallpaperExplorer {
         if (!canvas) return;
         
         const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
+        
+        // Get display size from CSS
+        const displayWidth = canvas.clientWidth || 320;
+        const displayHeight = canvas.clientHeight || 250;
+        
+        // Scale for high-DPI displays (Retina, etc.)
+        const dpr = window.devicePixelRatio || 1;
+        const scaleFactor = Math.max(dpr, 2); // At least 2x for crisp rendering
+        
+        // Set actual canvas size in memory (scaled)
+        canvas.width = displayWidth * scaleFactor;
+        canvas.height = displayHeight * scaleFactor;
+        
+        // Scale the context to counter the size increase
+        ctx.scale(scaleFactor, scaleFactor);
+        
+        // Use display dimensions for drawing calculations
+        const width = displayWidth;
+        const height = displayHeight;
+        
+        // Enable crisp rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         
         // Clear
         ctx.fillStyle = '#0f1419';
