@@ -1780,37 +1780,64 @@ class WallpaperExplorer {
     }
     
     /**
-     * p4: 90° rotation centered - EXACT 4-fold symmetry
+     * p4: 90° rotation centered - C₄ SOLO, SIN reflexiones
+     * Técnica: Crear motivo asimétrico y colocar 4 copias rotadas
+     * NO usar cos(nθ) porque cos(-θ)=cos(θ) introduce reflexión accidental
      */
     generateP4Centered(size, rng) {
+        const cellSize = Math.floor(size / 3);
+        const motifSize = Math.floor(cellSize / 2);
         const pattern = new Float32Array(size * size);
-        const cx = (size - 1) / 2;
-        const cy = (size - 1) / 2;
         
-        // Use cos(4nθ) for exact 4-fold rotational symmetry
-        const n1 = 1 + Math.floor(rng() * 2);  // 1-2, so 4n = 4 or 8
-        const n2 = 2 + Math.floor(rng() * 2);  // 2-3, so 4n = 8 or 12
-        const amp1 = 0.2 + rng() * 0.25;
-        const amp2 = 0.1 + rng() * 0.15;
+        // Crear motivo ASIMÉTRICO (sin ninguna simetría)
+        const motif = new Float32Array(motifSize * motifSize);
+        const numBlobs = 3 + Math.floor(rng() * 3);
         
+        for (let k = 0; k < numBlobs; k++) {
+            const bx = rng() * motifSize;
+            const by = rng() * motifSize;
+            const sigma = rng() * motifSize / 4 + motifSize / 10;
+            const amp = rng() * 0.5 + 0.5;
+            
+            for (let y = 0; y < motifSize; y++) {
+                for (let x = 0; x < motifSize; x++) {
+                    const dx = x - bx;
+                    const dy = y - by;
+                    motif[y * motifSize + x] += amp * Math.exp(-(dx*dx + dy*dy) / (2 * sigma * sigma));
+                }
+            }
+        }
+        
+        // Crear celda con C₄: 4 cuadrantes con rotaciones
+        // | M         | rot270(M) |
+        // | rot90(M)  | rot180(M) |
+        const cell = new Float32Array(cellSize * cellSize);
+        
+        for (let y = 0; y < motifSize; y++) {
+            for (let x = 0; x < motifSize; x++) {
+                const val = motif[y * motifSize + x];
+                
+                // Cuadrante superior-izquierdo: original
+                cell[y * cellSize + x] = val;
+                
+                // Cuadrante superior-derecho: rot270 (o -90)
+                // (x,y) -> (y, motifSize-1-x)
+                cell[y * cellSize + (motifSize + (motifSize - 1 - y))] = val;
+                
+                // Cuadrante inferior-derecho: rot180
+                cell[(motifSize + (motifSize - 1 - y)) * cellSize + (motifSize + (motifSize - 1 - x))] = val;
+                
+                // Cuadrante inferior-izquierdo: rot90
+                cell[(motifSize + x) * cellSize + y] = val;
+            }
+        }
+        
+        // Tile la celda
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
-                const dx = x - cx;
-                const dy = y - cy;
-                const r = Math.sqrt(dx * dx + dy * dy);
-                const theta = Math.atan2(dy, dx);
-                
-                // cos(4nθ) has exact 4-fold symmetry: f(θ) = f(θ + 90°)
-                // NO phase offsets to preserve exact symmetry
-                const radial = Math.exp(-r * r / (2 * 55 * 55));
-                const angular = 0.5 
-                    + amp1 * Math.cos(4 * theta)
-                    + amp2 * Math.cos(4 * n1 * theta)
-                    + 0.1 * Math.cos(4 * n2 * theta);
-                
-                const radialVar = 1 + 0.2 * Math.cos(n1 * r / 25);
-                
-                pattern[y * size + x] = radial * angular * radialVar;
+                const cy = y % cellSize;
+                const cx = x % cellSize;
+                pattern[y * size + x] = cell[cy * cellSize + cx];
             }
         }
         
@@ -1854,35 +1881,44 @@ class WallpaperExplorer {
     }
     
     /**
-     * p4g: 90° rotation + diagonal reflections centered
-     * Uses cos(4nθ) for exact 4-fold and diagonal reflection symmetry
+     * p4g: C₄ + reflexiones DIAGONALES (σ_d, σ_d'), NO axiales
+     * Usa sector fundamental con reflexión diagonal
      */
     generateP4GCentered(size, rng) {
+        // Primero crear un motivo base
+        const base = this.createBasePattern(size, rng);
         const pattern = new Float32Array(size * size);
-        const cx = (size - 1) / 2;
-        const cy = (size - 1) / 2;
+        const cx = size / 2;
+        const cy = size / 2;
         
-        const n1 = 1 + Math.floor(rng() * 2);
-        const amp1 = 0.15 + rng() * 0.2;
-        const amp2 = 0.1 + rng() * 0.15;
+        // p4g: 8 sectores (C₄ + reflexión diagonal)
+        const sectorAngle = Math.PI / 4;  // 45°
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const dx = x - cx;
                 const dy = y - cy;
                 const r = Math.sqrt(dx * dx + dy * dy);
-                const theta = Math.atan2(dy, dx);
                 
-                // cos(4nθ) has 4-fold rotation + diagonal reflections
-                const radial = Math.exp(-r * r / (2 * 55 * 55));
-                const angular = 0.5 
-                    + amp1 * Math.cos(4 * theta)
-                    + amp2 * Math.cos(8 * theta)
-                    + 0.08 * Math.cos(4 * n1 * theta);
+                let angle = Math.atan2(dy, dx);
+                if (angle < 0) angle += 2 * Math.PI;
                 
-                const radialVar = 1 + 0.2 * Math.cos(r / 20);
+                // Mapear al primer sector [0, π/4)
+                const sector = Math.floor(angle / sectorAngle);
+                let localAngle = angle - sector * sectorAngle;
                 
-                pattern[y * size + x] = radial * angular * radialVar;
+                // Sectores pares: directo; impares: reflejar diagonalmente
+                if (sector % 2 === 1) {
+                    localAngle = sectorAngle - localAngle;
+                }
+                
+                const srcX = r * Math.cos(localAngle) + cx;
+                const srcY = r * Math.sin(localAngle) + cy;
+                
+                const ix = Math.min(Math.max(Math.floor(srcX), 0), size - 1);
+                const iy = Math.min(Math.max(Math.floor(srcY), 0), size - 1);
+                
+                pattern[y * size + x] = base[iy * size + ix];
             }
         }
         
@@ -1890,42 +1926,60 @@ class WallpaperExplorer {
     }
     
     /**
-     * p3: 120° rotation centered - EXACT 3-fold symmetry
-     * Uses polar coordinates with cos(3θ) to ensure mathematical exactness
+     * Crear patrón base con gaussianas aleatorias
+     */
+    createBasePattern(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const numBlobs = 5 + Math.floor(rng() * 5);
+        
+        for (let k = 0; k < numBlobs; k++) {
+            const bx = rng() * size;
+            const by = rng() * size;
+            const sigma = rng() * size / 6 + size / 15;
+            const amp = rng() * 0.5 + 0.5;
+            
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    const dx = x - bx;
+                    const dy = y - by;
+                    pattern[y * size + x] += amp * Math.exp(-(dx*dx + dy*dy) / (2 * sigma * sigma));
+                }
+            }
+        }
+        return pattern;
+    }
+    
+    /**
+     * p3: C₃ solo - rotación 120°, SIN reflexiones
+     * Usa sector fundamental de 120° sin reflexión
      */
     generateP3Centered(size, rng) {
+        const base = this.createBasePattern(size, rng);
         const pattern = new Float32Array(size * size);
-        const cx = (size - 1) / 2;
-        const cy = (size - 1) / 2;
+        const cx = size / 2;
+        const cy = size / 2;
         
-        // Use only multiples of 3 for angular frequency to preserve 3-fold symmetry
-        // cos(3n*θ) is invariant under 120° rotation for any integer n
-        const n1 = 1 + Math.floor(rng() * 2);  // 1-2, so 3n = 3 or 6
-        const n2 = 1 + Math.floor(rng() * 2);
-        const radialFreq = 1 + Math.floor(rng() * 2);
-        
-        // Amplitudes for variety (these don't affect symmetry)
-        const amp1 = 0.2 + rng() * 0.3;
-        const amp2 = 0.1 + rng() * 0.2;
+        const sectorAngle = (2 * Math.PI) / 3;  // 120°
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const dx = x - cx;
                 const dy = y - cy;
                 const r = Math.sqrt(dx * dx + dy * dy);
-                const theta = Math.atan2(dy, dx);
                 
-                // Use ONLY cos(3n*θ) terms - these have EXACT 3-fold symmetry
-                // NO phase offsets that could break symmetry
-                const radial = Math.exp(-r * r / (2 * 60 * 60));
-                const angular = 0.5 
-                    + amp1 * Math.cos(3 * n1 * theta)
-                    + amp2 * Math.cos(3 * n2 * theta);
+                let angle = Math.atan2(dy, dx);
+                if (angle < 0) angle += 2 * Math.PI;
                 
-                // Radial variation (doesn't affect rotational symmetry)
-                const radialVar = 1 + 0.3 * Math.cos(radialFreq * r / 20);
+                // Mapear al primer sector [0, 2π/3)
+                const localAngle = angle % sectorAngle;
                 
-                pattern[y * size + x] = radial * angular * radialVar;
+                const srcX = r * Math.cos(localAngle) + cx;
+                const srcY = r * Math.sin(localAngle) + cy;
+                
+                const ix = Math.min(Math.max(Math.floor(srcX), 0), size - 1);
+                const iy = Math.min(Math.max(Math.floor(srcY), 0), size - 1);
+                
+                pattern[y * size + x] = base[iy * size + ix];
             }
         }
         
@@ -2007,38 +2061,36 @@ class WallpaperExplorer {
     }
     
     /**
-     * p6: 60° rotation centered - EXACT 6-fold symmetry
-     * Uses cos(6nθ) for mathematical exactness - NO phase offsets
+     * p6: C₆ solo - rotación 60°, SIN reflexiones
+     * Usa sector fundamental de 60° sin reflexión
      */
     generateP6Centered(size, rng) {
+        const base = this.createBasePattern(size, rng);
         const pattern = new Float32Array(size * size);
-        const cx = (size - 1) / 2;
-        const cy = (size - 1) / 2;
+        const cx = size / 2;
+        const cy = size / 2;
         
-        // Only multiples of 6 for angular frequency to preserve 6-fold symmetry
-        const n1 = 1 + Math.floor(rng() * 2);  // 1-2, so 6n = 6 or 12
-        const n2 = 2 + Math.floor(rng() * 2);  // 2-3, so 6n = 12 or 18
-        const amp1 = 0.2 + rng() * 0.2;
-        const amp2 = 0.1 + rng() * 0.15;
+        const sectorAngle = Math.PI / 3;  // 60°
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const dx = x - cx;
                 const dy = y - cy;
                 const r = Math.sqrt(dx * dx + dy * dy);
-                const theta = Math.atan2(dy, dx);
                 
-                // cos(6nθ) has exact 6-fold symmetry: f(θ) = f(θ + 60°)
-                // NO phase offsets to preserve exact symmetry
-                const radial = Math.exp(-r * r / (2 * 55 * 55));
-                const angular = 0.5 
-                    + amp1 * Math.cos(6 * theta)
-                    + amp2 * Math.cos(6 * n1 * theta)
-                    + 0.1 * Math.cos(6 * n2 * theta);
+                let angle = Math.atan2(dy, dx);
+                if (angle < 0) angle += 2 * Math.PI;
                 
-                const radialVar = 1 + 0.2 * Math.cos(n1 * r / 25);
+                // Mapear al primer sector [0, π/3) - SIN reflexión
+                const localAngle = angle % sectorAngle;
                 
-                pattern[y * size + x] = radial * angular * radialVar;
+                const srcX = r * Math.cos(localAngle) + cx;
+                const srcY = r * Math.sin(localAngle) + cy;
+                
+                const ix = Math.min(Math.max(Math.floor(srcX), 0), size - 1);
+                const iy = Math.min(Math.max(Math.floor(srcY), 0), size - 1);
+                
+                pattern[y * size + x] = base[iy * size + ix];
             }
         }
         
@@ -2046,36 +2098,42 @@ class WallpaperExplorer {
     }
     
     /**
-     * p6m: 60° rotation + 6 reflections (maximum symmetry)
-     * Uses cos(6nθ) terms - NO phase offsets for exact symmetry
+     * p6m: C₆ + reflexiones (D₆) - máxima simetría hexagonal
+     * Usa sector fundamental de 30° con reflexión
      */
     generateP6MCentered(size, rng) {
+        const base = this.createBasePattern(size, rng);
         const pattern = new Float32Array(size * size);
-        const cx = (size - 1) / 2;
-        const cy = (size - 1) / 2;
+        const cx = size / 2;
+        const cy = size / 2;
         
-        const n1 = 1 + Math.floor(rng() * 2);
-        const amp1 = 0.2 + rng() * 0.2;
-        const amp2 = 0.1 + rng() * 0.15;
+        const sectorAngle = Math.PI / 6;  // 30° - D₆ tiene 12 sectores
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const dx = x - cx;
                 const dy = y - cy;
                 const r = Math.sqrt(dx * dx + dy * dy);
-                const theta = Math.atan2(dy, dx);
                 
-                // cos(6nθ) has 6-fold rotational symmetry
-                // Also has reflection symmetry at θ = 0, 30°, 60°, etc.
-                const radial = Math.exp(-r * r / (2 * 50 * 50));
-                const angular = 0.5 
-                    + amp1 * Math.cos(6 * theta)
-                    + amp2 * Math.cos(12 * theta)
-                    + 0.1 * Math.cos(6 * n1 * theta);
+                let angle = Math.atan2(dy, dx);
+                if (angle < 0) angle += 2 * Math.PI;
                 
-                const radialVar = 1 + 0.25 * Math.cos(r / 20);
+                // Mapear al primer sector [0, π/6) con reflexión
+                const sector = Math.floor(angle / sectorAngle);
+                let localAngle = angle - sector * sectorAngle;
                 
-                pattern[y * size + x] = radial * angular * radialVar;
+                // Sectores impares: reflejar
+                if (sector % 2 === 1) {
+                    localAngle = sectorAngle - localAngle;
+                }
+                
+                const srcX = r * Math.cos(localAngle) + cx;
+                const srcY = r * Math.sin(localAngle) + cy;
+                
+                const ix = Math.min(Math.max(Math.floor(srcX), 0), size - 1);
+                const iy = Math.min(Math.max(Math.floor(srcY), 0), size - 1);
+                
+                pattern[y * size + x] = base[iy * size + ix];
             }
         }
         
