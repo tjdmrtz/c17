@@ -1070,6 +1070,19 @@ canvas {
     font-style: italic;
 }
 
+.cayley-note-small {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+}
+
+.cayley-glide-note {
+    color: #20c997;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+}
+
 .loading-text {
     font-size: 0.8rem;
     color: var(--text-muted);

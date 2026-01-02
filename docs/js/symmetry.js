@@ -540,17 +540,14 @@ const WallpaperGroups = {
         generators: 't₁, t₂, gₕ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'gₕ × gₕ = T', ops: [{type: 'glide', axis: 'horizontal'}, {type: 'glide', axis: 'horizontal'}] },
-            { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] }
+            { name: 'T(1,0) traslación', ops: [{type: 'translate', dx: 1, dy: 0}] }
         ],
-        invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'σ_v', 'σ_h'],
+        invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'σ_v', 'σ_h', 'gₕ (solo)'],
+        // Grupo puntual: C₁ (trivial) - los glides NO son operaciones puntuales
+        // Un glide NO da 100%, g² = traslación
         cayleyTable: {
-            elements: ['e', 'gₕ', 'gₕ²=t'],
-            table: [
-                ['e', 'gₕ', 't'],
-                ['gₕ', 't', 'gₕt'],
-                ['t', 'gₕt', 't²']
-            ]
+            elements: ['e'],
+            table: [['e']]
         },
         explanation: `
             El grupo pg tiene reflexiones deslizantes (glide reflections).
@@ -568,15 +565,15 @@ const WallpaperGroups = {
         rotationOrder: 1,
         hasReflection: true,
         hasGlide: true,
-        description: 'Reflexión + glide entre ejes de reflexión.',
+        description: 'Reflexión + glide entre ejes. Celda centrada.',
         pointGroupOrder: 2,
         generators: 't₁, t₂, σᵥ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] },
-            { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] }
+            { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] }
         ],
-        invalidSymmetries: ['C2', 'C3', 'C4', 'C6'],
+        invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'gₕ (solo)'],
+        // Grupo puntual: C_s = {e, σᵥ}
         cayleyTable: {
             elements: ['e', 'σᵥ'],
             table: [
@@ -627,7 +624,7 @@ const WallpaperGroups = {
         rotationOrder: 2,
         hasReflection: true,
         hasGlide: true,
-        description: 'Reflexión + glide perpendicular.',
+        description: 'Reflexión + glide perpendicular. σᵥ ∘ gₕ implica C₂.',
         pointGroupOrder: 4,
         generators: 't₁, t₂, σᵥ, gₕ',
         validSymmetries: [
@@ -635,14 +632,15 @@ const WallpaperGroups = {
             { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] },
             { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] }
         ],
-        invalidSymmetries: ['C3', 'C4', 'C6'],
+        invalidSymmetries: ['C3', 'C4', 'C6', 'σₕ', 'gₕ (solo)'],
+        // Operaciones puntuales que dan 100%: e, σᵥ, C₂
+        // σᵥ ∘ C₂ = σₕ pero en pmg la "σₕ" es glide → no da 100%
         cayleyTable: {
-            elements: ['e', 'σᵥ', 'gₕ', 'C₂'],
+            elements: ['e', 'σᵥ', 'C₂'],
             table: [
-                ['e', 'σᵥ', 'gₕ', 'C₂'],
-                ['σᵥ', 'e', 'C₂', 'gₕ'],
-                ['gₕ', 'C₂', 't', 'σᵥt'],
-                ['C₂', 'gₕ', 'σᵥt', 't']
+                ['e', 'σᵥ', 'C₂'],
+                ['σᵥ', 'e', '(gₕ)'],
+                ['C₂', '(gₕ)', 'e']
             ]
         },
         explanation: `
@@ -656,21 +654,20 @@ const WallpaperGroups = {
         rotationOrder: 2,
         hasReflection: false,
         hasGlide: true,
-        description: 'Glides perpendiculares. gᵥ ∘ gₕ = C₂',
-        pointGroupOrder: 4,
+        description: 'Glides perpendiculares. gᵥ ∘ gₕ = C₂. Sin reflexión pura.',
+        pointGroupOrder: 2,
         generators: 't₁, t₂, gᵥ, gₕ',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] }
+            { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] }
         ],
-        invalidSymmetries: ['C3', 'C4', 'C6', 'σ_v', 'σ_h'],
+        invalidSymmetries: ['C3', 'C4', 'C6', 'σ_v', 'σ_h', 'gᵥ (solo)', 'gₕ (solo)'],
+        // Grupo puntual: C₂ (los glides NO son operaciones puntuales)
         cayleyTable: {
-            elements: ['e', 'gᵥ', 'gₕ', 'C₂'],
+            elements: ['e', 'C₂'],
             table: [
-                ['e', 'gᵥ', 'gₕ', 'C₂'],
-                ['gᵥ', 'tᵥ', 'C₂', 'gₕtᵥ'],
-                ['gₕ', 'C₂', 'tₕ', 'gᵥtₕ'],
-                ['C₂', 'gₕtᵥ', 'gᵥtₕ', 'e']
+                ['e', 'C₂'],
+                ['C₂', 'e']
             ]
         },
         explanation: `
@@ -786,29 +783,29 @@ const WallpaperGroups = {
         rotationOrder: 4,
         hasReflection: true,
         hasGlide: true,
-        description: 'Rotación 90° + reflexiones diagonales + glides.',
+        description: 'Rotación 90° + reflexiones diagonales. Ejes axiales son glides.',
         pointGroupOrder: 8,
         generators: 't₁, t₂, C₄, σ_d',
         validSymmetries: [
             { name: 'Identidad', ops: [] },
-            { name: 'C₄', ops: [{type: 'rotate', angle: 90}] },
-            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] },
-            { name: 'C₄³', ops: [{type: 'rotate', angle: 270}] },
-            { name: 'σ_d', ops: [{type: 'reflect', axis: 'diagonal'}] },
-            { name: 'σ_d\'', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
+            { name: 'C₄ (90°)', ops: [{type: 'rotate', angle: 90}] },
+            { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] },
+            { name: 'C₄³ (270°)', ops: [{type: 'rotate', angle: 270}] },
+            { name: 'σ_d (diagonal)', ops: [{type: 'reflect', axis: 'diagonal'}] },
+            { name: 'σ_d\' (anti-diag)', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
         ],
-        invalidSymmetries: ['C3', 'C6'],
+        invalidSymmetries: ['C3', 'C6', 'σᵥ', 'σₕ', 'gᵥ (solo)', 'gₕ (solo)'],
+        // Grupo puntual efectivo: solo rotaciones + reflexiones diagonales
+        // σᵥ y σₕ son glides en p4g → no dan 100%
         cayleyTable: {
-            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\'', 'gᵥ', 'gₕ'],
+            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\''],
             table: [
-                ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\'', 'gᵥ', 'gₕ'],
-                ['C₄', 'C₂', 'C₄³', 'e', 'gₕ', 'gᵥ', 'σ_d', 'σ_d\''],
-                ['C₂', 'C₄³', 'e', 'C₄', 'σ_d\'', 'σ_d', 'gₕ', 'gᵥ'],
-                ['C₄³', 'e', 'C₄', 'C₂', 'gᵥ', 'gₕ', 'σ_d\'', 'σ_d'],
-                ['σ_d', 'gᵥ', 'σ_d\'', 'gₕ', 'e', 'C₂', 'C₄', 'C₄³'],
-                ['σ_d\'', 'gₕ', 'σ_d', 'gᵥ', 'C₂', 'e', 'C₄³', 'C₄'],
-                ['gᵥ', 'σ_d\'', 'gₕ', 'σ_d', 'C₄³', 'C₄', 'tᵥ', 'C₂tᵥ'],
-                ['gₕ', 'σ_d', 'gᵥ', 'σ_d\'', 'C₄', 'C₄³', 'C₂tₕ', 'tₕ']
+                ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\''],
+                ['C₄', 'C₂', 'C₄³', 'e', '(gₕ)', '(gᵥ)'],
+                ['C₂', 'C₄³', 'e', 'C₄', 'σ_d\'', 'σ_d'],
+                ['C₄³', 'e', 'C₄', 'C₂', '(gᵥ)', '(gₕ)'],
+                ['σ_d', '(gᵥ)', 'σ_d\'', '(gₕ)', 'e', 'C₂'],
+                ['σ_d\'', '(gₕ)', 'σ_d', '(gᵥ)', 'C₂', 'e']
             ]
         },
         explanation: `
