@@ -2,6 +2,10 @@
  * Symmetry Operations Module
  * Mathematical transformations for wallpaper group symmetries
  * 
+ * MATHEMATICAL REFERENCE:
+ * - International Tables for Crystallography, Vol. A
+ * - Conway et al., "The Symmetries of Things" (2008)
+ * 
  * IMPORTANT: All operations are designed to be EXACT (no interpolation errors)
  * for crystallographic angles (60°, 90°, 120°, 180°, etc.)
  */
@@ -66,8 +70,8 @@ const SymmetryOps = {
             if (Math.abs(v) < 1e-10) return "0";
             if (Math.abs(v - 1) < 1e-10) return "1";
             if (Math.abs(v + 1) < 1e-10) return "-1";
-            if (Math.abs(v - 0.5) < 1e-10) return "0.5";
-            if (Math.abs(v + 0.5) < 1e-10) return "-0.5";
+            if (Math.abs(v - 0.5) < 1e-10) return "½";
+            if (Math.abs(v + 0.5) < 1e-10) return "-½";
             // For √3/2
             if (Math.abs(v - 0.866025) < 1e-5) return "√3/2";
             if (Math.abs(v + 0.866025) < 1e-5) return "-√3/2";
@@ -436,7 +440,18 @@ const ImageTransform = {
 };
 
 /**
- * Wallpaper group definitions with CORRECT symmetry properties
+ * Wallpaper group definitions with CORRECT mathematical properties
+ * 
+ * Reference: International Tables for Crystallography, Vol. A
+ * 
+ * Notation:
+ * - e: identity
+ * - C_n: rotation by 360°/n
+ * - σ_v: vertical reflection (across vertical axis)
+ * - σ_h: horizontal reflection (across horizontal axis)
+ * - σ_d: diagonal reflection
+ * - g: glide reflection (reflection + translation by half period)
+ * - t₁, t₂: primitive translations
  */
 const WallpaperGroups = {
     p1: {
@@ -445,12 +460,30 @@ const WallpaperGroups = {
         rotationOrder: 1,
         hasReflection: false,
         hasGlide: false,
-        description: 'Solo traslaciones, sin simetría puntual',
+        description: 'Solo traslaciones. Sin rotación ni reflexión.',
         pointGroupOrder: 1,
         generators: 't₁, t₂',
-        // p1 has NO rotational symmetry, NO reflection - only translations
-        validOperations: ['translate'],
-        symmetryAngles: []  // No rotation symmetry
+        // Operations that should give 100% correlation for this group
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] },
+            { name: 'T(0,1)', ops: [{type: 'translate', dx: 0, dy: 1}] }
+        ],
+        // Operations that should NOT give 100% for this group
+        invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'σ_v', 'σ_h', 'g'],
+        // Cayley table (multiplication table) for point group
+        cayleyTable: {
+            elements: ['e'],
+            table: [['e']]
+        },
+        // Detailed explanation
+        explanation: `
+            El grupo p1 es el grupo de simetría más simple.
+            Solo contiene traslaciones por los vectores de la red.
+            NO tiene rotación (excepto trivial 360°), NO tiene reflexión, NO tiene glide.
+            
+            Si aplicás C2 (180°) a un patrón p1, NO debería dar la misma imagen.
+        `
     },
     p2: {
         name: 'p2',
@@ -458,11 +491,29 @@ const WallpaperGroups = {
         rotationOrder: 2,
         hasReflection: false,
         hasGlide: false,
-        description: 'Centros de rotación de 180°',
+        description: 'Rotación de 180° (C₂). Sin reflexiones.',
         pointGroupOrder: 2,
         generators: 't₁, t₂, C₂',
-        validOperations: ['rotate180', 'translate'],
-        symmetryAngles: [180]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] },
+            { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] }
+        ],
+        invalidSymmetries: ['C3', 'C4', 'C6', 'σ_v', 'σ_h', 'g'],
+        cayleyTable: {
+            elements: ['e', 'C₂'],
+            table: [
+                ['e', 'C₂'],
+                ['C₂', 'e']
+            ]
+        },
+        explanation: `
+            El grupo p2 tiene rotación de 180° alrededor de ciertos puntos.
+            C₂ × C₂ = e (dos rotaciones de 180° = identidad)
+            NO tiene reflexiones ni glides.
+            
+            Diferencia con p1: aplicar C2 (180°) SÍ da la misma imagen.
+        `
     },
     pm: {
         name: 'pm',
@@ -470,11 +521,27 @@ const WallpaperGroups = {
         rotationOrder: 1,
         hasReflection: true,
         hasGlide: false,
-        description: 'Ejes de reflexión paralelos',
+        description: 'Ejes de reflexión paralelos. Sin rotación.',
         pointGroupOrder: 2,
         generators: 't₁, t₂, σ',
-        validOperations: ['reflectVertical', 'translate'],
-        symmetryAngles: []
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] }
+        ],
+        invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'g'],
+        cayleyTable: {
+            elements: ['e', 'σ'],
+            table: [
+                ['e', 'σ'],
+                ['σ', 'e']
+            ]
+        },
+        explanation: `
+            El grupo pm tiene ejes de reflexión paralelos.
+            σ × σ = e (dos reflexiones iguales = identidad)
+            NO tiene rotación (excepto trivial).
+        `
     },
     pg: {
         name: 'pg',
@@ -482,23 +549,60 @@ const WallpaperGroups = {
         rotationOrder: 1,
         hasReflection: false,
         hasGlide: true,
-        description: 'Reflexiones deslizantes paralelas',
-        pointGroupOrder: 2,
+        description: 'Reflexiones deslizantes (glide) paralelas. Sin reflexión pura.',
+        pointGroupOrder: 1,
         generators: 't₁, t₂, g',
-        validOperations: ['glide', 'translate'],
-        symmetryAngles: []
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'g × g = T', ops: [{type: 'glide', axis: 'vertical'}, {type: 'glide', axis: 'vertical'}] },
+            { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] }
+        ],
+        invalidSymmetries: ['C2', 'C3', 'C4', 'C6', 'σ_v', 'σ_h'],
+        cayleyTable: {
+            elements: ['e', 'g', 'g²=t'],
+            table: [
+                ['e', 'g', 't'],
+                ['g', 't', 'gt'],
+                ['t', 'gt', 't²']
+            ]
+        },
+        explanation: `
+            El grupo pg tiene reflexiones deslizantes (glide reflections).
+            Un glide = reflexión + traslación por medio período.
+            g × g = traslación (NO identidad, sino traslación completa).
+            NO tiene reflexión pura ni rotación.
+            
+            Nota: UN solo glide NO da la imagen original.
+            Dos glides dan una traslación completa.
+        `
     },
     cm: {
         name: 'cm',
-        lattice: 'Rectangular',
+        lattice: 'Rectangular (centrado)',
         rotationOrder: 1,
         hasReflection: true,
         hasGlide: true,
-        description: 'Ejes de reflexión con deslizamiento entre ellos',
+        description: 'Reflexión + glide entre ejes de reflexión.',
         pointGroupOrder: 2,
-        generators: 't₁, t₂, σ, g',
-        validOperations: ['reflectVertical', 'glide', 'translate'],
-        symmetryAngles: []
+        generators: 't₁, t₂, σ',
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'σᵥ (reflexión)', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'T(1,0)', ops: [{type: 'translate', dx: 1, dy: 0}] }
+        ],
+        invalidSymmetries: ['C2', 'C3', 'C4', 'C6'],
+        cayleyTable: {
+            elements: ['e', 'σ'],
+            table: [
+                ['e', 'σ'],
+                ['σ', 'e']
+            ]
+        },
+        explanation: `
+            El grupo cm tiene reflexiones Y glides.
+            La celda es centrada (hay un punto de red adicional en el centro).
+            Tiene reflexión pura + glides entre los ejes de reflexión.
+        `
     },
     pmm: {
         name: 'pmm',
@@ -506,11 +610,30 @@ const WallpaperGroups = {
         rotationOrder: 2,
         hasReflection: true,
         hasGlide: false,
-        description: 'Ejes de reflexión perpendiculares',
+        description: 'Reflexiones perpendiculares. σᵥ ∘ σₕ = C₂',
         pointGroupOrder: 4,
         generators: 't₁, t₂, σᵥ, σₕ',
-        validOperations: ['rotate180', 'reflectVertical', 'reflectHorizontal', 'translate'],
-        symmetryAngles: [180]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'σₕ', ops: [{type: 'reflect', axis: 'horizontal'}] },
+            { name: 'C₂ = σᵥσₕ', ops: [{type: 'rotate', angle: 180}] }
+        ],
+        invalidSymmetries: ['C3', 'C4', 'C6', 'g'],
+        cayleyTable: {
+            elements: ['e', 'σᵥ', 'σₕ', 'C₂'],
+            table: [
+                ['e', 'σᵥ', 'σₕ', 'C₂'],
+                ['σᵥ', 'e', 'C₂', 'σₕ'],
+                ['σₕ', 'C₂', 'e', 'σᵥ'],
+                ['C₂', 'σₕ', 'σᵥ', 'e']
+            ]
+        },
+        explanation: `
+            El grupo pmm tiene dos ejes de reflexión perpendiculares.
+            IMPORTANTE: σᵥ ∘ σₕ = C₂ (dos reflexiones perpendiculares = rotación 180°)
+            Esto es un teorema fundamental de la teoría de grupos.
+        `
     },
     pmg: {
         name: 'pmg',
@@ -518,11 +641,28 @@ const WallpaperGroups = {
         rotationOrder: 2,
         hasReflection: true,
         hasGlide: true,
-        description: 'Reflexión + deslizamiento perpendicular',
+        description: 'Reflexión + glide perpendicular.',
         pointGroupOrder: 4,
         generators: 't₁, t₂, σ, g',
-        validOperations: ['rotate180', 'reflectVertical', 'glide', 'translate'],
-        symmetryAngles: [180]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] }
+        ],
+        invalidSymmetries: ['C3', 'C4', 'C6'],
+        cayleyTable: {
+            elements: ['e', 'σ', 'g', 'C₂'],
+            table: [
+                ['e', 'σ', 'g', 'C₂'],
+                ['σ', 'e', 'C₂', 'g'],
+                ['g', 'C₂', 't', 'σt'],
+                ['C₂', 'g', 'σt', 't']
+            ]
+        },
+        explanation: `
+            Reflexión en una dirección, glide en la perpendicular.
+            La combinación crea rotación de 180°.
+        `
     },
     pgg: {
         name: 'pgg',
@@ -530,23 +670,58 @@ const WallpaperGroups = {
         rotationOrder: 2,
         hasReflection: false,
         hasGlide: true,
-        description: 'Reflexiones deslizantes perpendiculares',
+        description: 'Glides perpendiculares. gᵥ ∘ gₕ = C₂',
         pointGroupOrder: 4,
         generators: 't₁, t₂, gᵥ, gₕ',
-        validOperations: ['rotate180', 'glide', 'translate'],
-        symmetryAngles: [180]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] }
+        ],
+        invalidSymmetries: ['C3', 'C4', 'C6', 'σ_v', 'σ_h'],
+        cayleyTable: {
+            elements: ['e', 'gᵥ', 'gₕ', 'C₂'],
+            table: [
+                ['e', 'gᵥ', 'gₕ', 'C₂'],
+                ['gᵥ', 'tᵥ', 'C₂', 'gₕtᵥ'],
+                ['gₕ', 'C₂', 'tₕ', 'gᵥtₕ'],
+                ['C₂', 'gₕtᵥ', 'gᵥtₕ', 'e']
+            ]
+        },
+        explanation: `
+            Dos glides perpendiculares, sin reflexión pura.
+            gᵥ ∘ gₕ = C₂ (la composición da rotación 180°)
+            NO tiene reflexión pura.
+        `
     },
     cmm: {
         name: 'cmm',
-        lattice: 'Rectangular',
+        lattice: 'Rectangular (centrado)',
         rotationOrder: 2,
         hasReflection: true,
         hasGlide: true,
-        description: 'Celda centrada con reflexiones',
+        description: 'Celda centrada con reflexiones perpendiculares.',
         pointGroupOrder: 4,
-        generators: 't₁, t₂, σᵥ, σₕ, g',
-        validOperations: ['rotate180', 'reflectVertical', 'reflectHorizontal', 'glide', 'translate'],
-        symmetryAngles: [180]
+        generators: 't₁, t₂, σᵥ, σₕ',
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'σₕ', ops: [{type: 'reflect', axis: 'horizontal'}] },
+            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] }
+        ],
+        invalidSymmetries: ['C3', 'C4', 'C6'],
+        cayleyTable: {
+            elements: ['e', 'σᵥ', 'σₕ', 'C₂'],
+            table: [
+                ['e', 'σᵥ', 'σₕ', 'C₂'],
+                ['σᵥ', 'e', 'C₂', 'σₕ'],
+                ['σₕ', 'C₂', 'e', 'σᵥ'],
+                ['C₂', 'σₕ', 'σᵥ', 'e']
+            ]
+        },
+        explanation: `
+            Como pmm pero con celda centrada.
+            Tiene reflexiones perpendiculares Y glides.
+        `
     },
     p4: {
         name: 'p4',
@@ -554,11 +729,31 @@ const WallpaperGroups = {
         rotationOrder: 4,
         hasReflection: false,
         hasGlide: false,
-        description: 'Centros de rotación de 90°',
+        description: 'Rotación de 90° (C₄). Sin reflexiones.',
         pointGroupOrder: 4,
         generators: 't₁, t₂, C₄',
-        validOperations: ['rotate90', 'rotate180', 'rotate270', 'translate'],
-        symmetryAngles: [90, 180, 270]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₄ (90°)', ops: [{type: 'rotate', angle: 90}] },
+            { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] },
+            { name: 'C₄³ (270°)', ops: [{type: 'rotate', angle: 270}] }
+        ],
+        invalidSymmetries: ['C3', 'C6', 'σ_v', 'σ_h', 'σ_d', 'g'],
+        cayleyTable: {
+            elements: ['e', 'C₄', 'C₂', 'C₄³'],
+            table: [
+                ['e', 'C₄', 'C₂', 'C₄³'],
+                ['C₄', 'C₂', 'C₄³', 'e'],
+                ['C₂', 'C₄³', 'e', 'C₄'],
+                ['C₄³', 'e', 'C₄', 'C₂']
+            ]
+        },
+        explanation: `
+            El grupo p4 tiene rotación de 90° (orden 4).
+            C₄⁴ = e (cuatro rotaciones de 90° = identidad)
+            C₄² = C₂ (dos rotaciones de 90° = 180°)
+            NO tiene reflexiones.
+        `
     },
     p4m: {
         name: 'p4m',
@@ -566,11 +761,38 @@ const WallpaperGroups = {
         rotationOrder: 4,
         hasReflection: true,
         hasGlide: true,
-        description: 'Cuadrado con reflexiones en todos los ejes',
+        description: 'Rotación 90° + reflexiones (4 ejes).',
         pointGroupOrder: 8,
         generators: 't₁, t₂, C₄, σ',
-        validOperations: ['rotate90', 'rotate180', 'rotate270', 'reflectVertical', 'reflectHorizontal', 'reflectDiagonal', 'reflectAntidiagonal', 'translate'],
-        symmetryAngles: [90, 180, 270]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₄', ops: [{type: 'rotate', angle: 90}] },
+            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] },
+            { name: 'C₄³', ops: [{type: 'rotate', angle: 270}] },
+            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'σₕ', ops: [{type: 'reflect', axis: 'horizontal'}] },
+            { name: 'σ_d', ops: [{type: 'reflect', axis: 'diagonal'}] },
+            { name: 'σ_d\'', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
+        ],
+        invalidSymmetries: ['C3', 'C6'],
+        cayleyTable: {
+            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σᵥ', 'σₕ', 'σ_d', 'σ_d\''],
+            table: [
+                ['e', 'C₄', 'C₂', 'C₄³', 'σᵥ', 'σₕ', 'σ_d', 'σ_d\''],
+                ['C₄', 'C₂', 'C₄³', 'e', 'σ_d\'', 'σ_d', 'σᵥ', 'σₕ'],
+                ['C₂', 'C₄³', 'e', 'C₄', 'σₕ', 'σᵥ', 'σ_d\'', 'σ_d'],
+                ['C₄³', 'e', 'C₄', 'C₂', 'σ_d', 'σ_d\'', 'σₕ', 'σᵥ'],
+                ['σᵥ', 'σ_d', 'σₕ', 'σ_d\'', 'e', 'C₂', 'C₄', 'C₄³'],
+                ['σₕ', 'σ_d\'', 'σᵥ', 'σ_d', 'C₂', 'e', 'C₄³', 'C₄'],
+                ['σ_d', 'σₕ', 'σ_d\'', 'σᵥ', 'C₄³', 'C₄', 'e', 'C₂'],
+                ['σ_d\'', 'σᵥ', 'σ_d', 'σₕ', 'C₄', 'C₄³', 'C₂', 'e']
+            ]
+        },
+        explanation: `
+            El grupo p4m tiene la máxima simetría para red cuadrada.
+            Rotación de 90° + 4 ejes de reflexión (horizontal, vertical, 2 diagonales).
+            El grupo puntual es D₄ (orden 8).
+        `
     },
     p4g: {
         name: 'p4g',
@@ -578,11 +800,35 @@ const WallpaperGroups = {
         rotationOrder: 4,
         hasReflection: true,
         hasGlide: true,
-        description: 'Cuadrado con deslizamientos y rotaciones',
+        description: 'Rotación 90° + reflexiones diagonales + glides.',
         pointGroupOrder: 8,
-        generators: 't₁, t₂, C₄, g',
-        validOperations: ['rotate90', 'rotate180', 'rotate270', 'reflectDiagonal', 'reflectAntidiagonal', 'glide', 'translate'],
-        symmetryAngles: [90, 180, 270]
+        generators: 't₁, t₂, C₄, σ_d',
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₄', ops: [{type: 'rotate', angle: 90}] },
+            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] },
+            { name: 'C₄³', ops: [{type: 'rotate', angle: 270}] },
+            { name: 'σ_d', ops: [{type: 'reflect', axis: 'diagonal'}] },
+            { name: 'σ_d\'', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
+        ],
+        invalidSymmetries: ['C3', 'C6'],
+        cayleyTable: {
+            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\'', 'gᵥ', 'gₕ'],
+            table: [
+                ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\'', 'gᵥ', 'gₕ'],
+                ['C₄', 'C₂', 'C₄³', 'e', 'gₕ', 'gᵥ', 'σ_d', 'σ_d\''],
+                ['C₂', 'C₄³', 'e', 'C₄', 'σ_d\'', 'σ_d', 'gₕ', 'gᵥ'],
+                ['C₄³', 'e', 'C₄', 'C₂', 'gᵥ', 'gₕ', 'σ_d\'', 'σ_d'],
+                ['σ_d', 'gᵥ', 'σ_d\'', 'gₕ', 'e', 'C₂', 'C₄', 'C₄³'],
+                ['σ_d\'', 'gₕ', 'σ_d', 'gᵥ', 'C₂', 'e', 'C₄³', 'C₄'],
+                ['gᵥ', 'σ_d\'', 'gₕ', 'σ_d', 'C₄³', 'C₄', 'tᵥ', 'C₂tᵥ'],
+                ['gₕ', 'σ_d', 'gᵥ', 'σ_d\'', 'C₄', 'C₄³', 'C₂tₕ', 'tₕ']
+            ]
+        },
+        explanation: `
+            Similar a p4m pero con reflexiones solo en diagonales.
+            Las reflexiones en ejes horizontal/vertical son glides.
+        `
     },
     p3: {
         name: 'p3',
@@ -590,11 +836,29 @@ const WallpaperGroups = {
         rotationOrder: 3,
         hasReflection: false,
         hasGlide: false,
-        description: 'Centros de rotación de 120°',
+        description: 'Rotación de 120° (C₃). Sin reflexiones.',
         pointGroupOrder: 3,
         generators: 't₁, t₂, C₃',
-        validOperations: ['rotate120', 'rotate240', 'translate'],
-        symmetryAngles: [120, 240]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₃ (120°)', ops: [{type: 'rotate', angle: 120}] },
+            { name: 'C₃² (240°)', ops: [{type: 'rotate', angle: 240}] }
+        ],
+        invalidSymmetries: ['C2', 'C4', 'C6', 'σ_v', 'σ_h', 'g'],
+        cayleyTable: {
+            elements: ['e', 'C₃', 'C₃²'],
+            table: [
+                ['e', 'C₃', 'C₃²'],
+                ['C₃', 'C₃²', 'e'],
+                ['C₃²', 'e', 'C₃']
+            ]
+        },
+        explanation: `
+            El grupo p3 tiene rotación de 120° (orden 3).
+            C₃³ = e (tres rotaciones de 120° = identidad)
+            NO tiene reflexiones.
+            Nota: NO tiene C₂ (rotación 180°).
+        `
     },
     p3m1: {
         name: 'p3m1',
@@ -602,11 +866,32 @@ const WallpaperGroups = {
         rotationOrder: 3,
         hasReflection: true,
         hasGlide: false,
-        description: 'Rotación 120° con ejes de reflexión a través de centros',
+        description: 'Rotación 120° + reflexiones a través de centros.',
         pointGroupOrder: 6,
         generators: 't₁, t₂, C₃, σ',
-        validOperations: ['rotate120', 'rotate240', 'reflectVertical', 'translate'],
-        symmetryAngles: [120, 240]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₃', ops: [{type: 'rotate', angle: 120}] },
+            { name: 'C₃²', ops: [{type: 'rotate', angle: 240}] },
+            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] }
+        ],
+        invalidSymmetries: ['C2', 'C4', 'C6'],
+        cayleyTable: {
+            elements: ['e', 'C₃', 'C₃²', 'σ₁', 'σ₂', 'σ₃'],
+            table: [
+                ['e', 'C₃', 'C₃²', 'σ₁', 'σ₂', 'σ₃'],
+                ['C₃', 'C₃²', 'e', 'σ₃', 'σ₁', 'σ₂'],
+                ['C₃²', 'e', 'C₃', 'σ₂', 'σ₃', 'σ₁'],
+                ['σ₁', 'σ₂', 'σ₃', 'e', 'C₃', 'C₃²'],
+                ['σ₂', 'σ₃', 'σ₁', 'C₃²', 'e', 'C₃'],
+                ['σ₃', 'σ₁', 'σ₂', 'C₃', 'C₃²', 'e']
+            ]
+        },
+        explanation: `
+            Rotación de 120° + 3 ejes de reflexión.
+            Los ejes de reflexión pasan POR los centros de rotación.
+            El grupo puntual es D₃ (orden 6).
+        `
     },
     p31m: {
         name: 'p31m',
@@ -614,11 +899,32 @@ const WallpaperGroups = {
         rotationOrder: 3,
         hasReflection: true,
         hasGlide: false,
-        description: 'Rotación 120° con ejes de reflexión entre centros',
+        description: 'Rotación 120° + reflexiones entre centros.',
         pointGroupOrder: 6,
         generators: 't₁, t₂, C₃, σ',
-        validOperations: ['rotate120', 'rotate240', 'reflectHorizontal', 'translate'],
-        symmetryAngles: [120, 240]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₃', ops: [{type: 'rotate', angle: 120}] },
+            { name: 'C₃²', ops: [{type: 'rotate', angle: 240}] },
+            { name: 'σₕ', ops: [{type: 'reflect', axis: 'horizontal'}] }
+        ],
+        invalidSymmetries: ['C2', 'C4', 'C6'],
+        cayleyTable: {
+            elements: ['e', 'C₃', 'C₃²', 'σ₁', 'σ₂', 'σ₃'],
+            table: [
+                ['e', 'C₃', 'C₃²', 'σ₁', 'σ₂', 'σ₃'],
+                ['C₃', 'C₃²', 'e', 'σ₃', 'σ₁', 'σ₂'],
+                ['C₃²', 'e', 'C₃', 'σ₂', 'σ₃', 'σ₁'],
+                ['σ₁', 'σ₂', 'σ₃', 'e', 'C₃', 'C₃²'],
+                ['σ₂', 'σ₃', 'σ₁', 'C₃²', 'e', 'C₃'],
+                ['σ₃', 'σ₁', 'σ₂', 'C₃', 'C₃²', 'e']
+            ]
+        },
+        explanation: `
+            Rotación de 120° + 3 ejes de reflexión.
+            Los ejes de reflexión pasan ENTRE los centros de rotación.
+            Diferencia sutil con p3m1 en la posición de los ejes.
+        `
     },
     p6: {
         name: 'p6',
@@ -626,11 +932,35 @@ const WallpaperGroups = {
         rotationOrder: 6,
         hasReflection: false,
         hasGlide: false,
-        description: 'Centros de rotación de 60°',
+        description: 'Rotación de 60° (C₆). Sin reflexiones.',
         pointGroupOrder: 6,
         generators: 't₁, t₂, C₆',
-        validOperations: ['rotate60', 'rotate120', 'rotate180', 'rotate240', 'rotate300', 'translate'],
-        symmetryAngles: [60, 120, 180, 240, 300]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₆ (60°)', ops: [{type: 'rotate', angle: 60}] },
+            { name: 'C₃ (120°)', ops: [{type: 'rotate', angle: 120}] },
+            { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] },
+            { name: 'C₃² (240°)', ops: [{type: 'rotate', angle: 240}] },
+            { name: 'C₆⁵ (300°)', ops: [{type: 'rotate', angle: 300}] }
+        ],
+        invalidSymmetries: ['C4', 'σ_v', 'σ_h', 'g'],
+        cayleyTable: {
+            elements: ['e', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵'],
+            table: [
+                ['e', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵'],
+                ['C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'e'],
+                ['C₃', 'C₂', 'C₃²', 'C₆⁵', 'e', 'C₆'],
+                ['C₂', 'C₃²', 'C₆⁵', 'e', 'C₆', 'C₃'],
+                ['C₃²', 'C₆⁵', 'e', 'C₆', 'C₃', 'C₂'],
+                ['C₆⁵', 'e', 'C₆', 'C₃', 'C₂', 'C₃²']
+            ]
+        },
+        explanation: `
+            El grupo p6 tiene rotación de 60° (orden 6).
+            Contiene C₆, C₃ (=C₆²), C₂ (=C₆³), C₃² (=C₆⁴), C₆⁵.
+            C₆⁶ = e.
+            NO tiene reflexiones.
+        `
     },
     p6m: {
         name: 'p6m',
@@ -638,11 +968,30 @@ const WallpaperGroups = {
         rotationOrder: 6,
         hasReflection: true,
         hasGlide: true,
-        description: 'Hexagonal con todas las simetrías (máxima simetría)',
+        description: 'Máxima simetría: C₆ + 6 reflexiones.',
         pointGroupOrder: 12,
         generators: 't₁, t₂, C₆, σ',
-        validOperations: ['rotate60', 'rotate120', 'rotate180', 'rotate240', 'rotate300', 'reflectVertical', 'reflectHorizontal', 'glide', 'translate'],
-        symmetryAngles: [60, 120, 180, 240, 300]
+        validSymmetries: [
+            { name: 'Identidad', ops: [] },
+            { name: 'C₆', ops: [{type: 'rotate', angle: 60}] },
+            { name: 'C₃', ops: [{type: 'rotate', angle: 120}] },
+            { name: 'C₂', ops: [{type: 'rotate', angle: 180}] },
+            { name: 'C₃²', ops: [{type: 'rotate', angle: 240}] },
+            { name: 'C₆⁵', ops: [{type: 'rotate', angle: 300}] },
+            { name: 'σᵥ', ops: [{type: 'reflect', axis: 'vertical'}] },
+            { name: 'σₕ', ops: [{type: 'reflect', axis: 'horizontal'}] }
+        ],
+        invalidSymmetries: ['C4'],
+        cayleyTable: {
+            elements: ['e', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'σ₁', 'σ₂', 'σ₃', 'σ₄', 'σ₅', 'σ₆'],
+            table: 'D₆ (dihedral group of order 12) - tabla completa disponible en referencias'
+        },
+        explanation: `
+            El grupo p6m tiene la MÁXIMA simetría de todos los 17 grupos.
+            Rotación de 60° + 6 ejes de reflexión.
+            El grupo puntual es D₆ (orden 12).
+            El dominio fundamental es 1/12 de la celda unitaria.
+        `
     }
 };
 

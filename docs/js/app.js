@@ -140,6 +140,65 @@ class WallpaperExplorer {
         document.getElementById('mathGlide').textContent = group.hasGlide ? 'Sí' : 'No';
         document.getElementById('mathPointGroupOrder').textContent = group.pointGroupOrder;
         document.getElementById('generatorsList').innerHTML = `<code>${group.generators}</code>`;
+        
+        // Update valid symmetries display
+        this.updateValidSymmetries(group);
+        
+        // Update Cayley table
+        this.updateCayleyTable(group);
+    }
+    
+    updateValidSymmetries(group) {
+        const container = document.getElementById('validSymmetriesContainer');
+        if (!container) return;
+        
+        let html = '<h4>Simetrías que dan 100%:</h4><ul class="valid-symmetries-list">';
+        
+        if (group.validSymmetries) {
+            for (const sym of group.validSymmetries) {
+                html += `<li><code>${sym.name}</code></li>`;
+            }
+        }
+        
+        html += '</ul>';
+        
+        if (group.invalidSymmetries && group.invalidSymmetries.length > 0) {
+            html += '<h4>NO son simetrías:</h4><p class="invalid-symmetries">';
+            html += group.invalidSymmetries.join(', ');
+            html += '</p>';
+        }
+        
+        container.innerHTML = html;
+    }
+    
+    updateCayleyTable(group) {
+        const container = document.getElementById('cayleyTableContainer');
+        if (!container) return;
+        
+        if (!group.cayleyTable || typeof group.cayleyTable.table === 'string') {
+            container.innerHTML = `<p class="cayley-note">${group.cayleyTable?.table || 'Tabla no disponible'}</p>`;
+            return;
+        }
+        
+        const elements = group.cayleyTable.elements;
+        const table = group.cayleyTable.table;
+        
+        let html = '<table class="cayley-table"><thead><tr><th>∘</th>';
+        for (const el of elements) {
+            html += `<th>${el}</th>`;
+        }
+        html += '</tr></thead><tbody>';
+        
+        for (let i = 0; i < elements.length; i++) {
+            html += `<tr><th>${elements[i]}</th>`;
+            for (let j = 0; j < elements.length; j++) {
+                html += `<td>${table[i][j]}</td>`;
+            }
+            html += '</tr>';
+        }
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
     }
     
     updateMatrixDisplay() {
@@ -152,21 +211,22 @@ class WallpaperExplorer {
     
     /**
      * Generate a mathematically correct pattern for the given wallpaper group.
-     * The pattern is constructed by:
-     * 1. Creating an ASYMMETRIC fundamental domain
-     * 2. Applying the symmetry operations of the group to build the unit cell
-     * 3. Tiling the unit cell to fill the canvas
+     * 
+     * CRITICAL: The pattern must have EXACTLY the symmetries of the group.
+     * - p1: NO rotational symmetry, NO reflection
+     * - p2: C2 symmetry (180°) ONLY
+     * - etc.
      */
     generatePattern(groupName) {
         const size = this.canvasSize;
         const imageData = this.originalCtx.createImageData(size, size);
         const group = WallpaperGroups[groupName];
         
-        // Seed based on group name for consistency
-        const seed = this.hashString(groupName);
+        // Use different seeds for different groups to ensure variety
+        const seed = this.hashString(groupName + '_v2');
         const rng = this.seededRandom(seed);
         
-        // Generate pattern based on group type
+        // Generate pattern with EXACT symmetries
         let pattern;
         
         switch (groupName) {
@@ -225,7 +285,7 @@ class WallpaperExplorer {
                 pattern = this.generateP1(size, rng);
         }
         
-        // Fill image data
+        // Fill image data with viridis colormap
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const value = pattern[y * size + x];
@@ -248,30 +308,46 @@ class WallpaperExplorer {
     }
     
     /**
-     * Create an asymmetric motif (fundamental domain content)
+     * Create a truly ASYMMETRIC motif
+     * This is crucial - the motif must have NO symmetry
      */
     createAsymmetricMotif(size, rng) {
         const motif = new Float32Array(size * size);
         
-        // Add several asymmetric elements
-        const numElements = 3 + Math.floor(rng() * 3);
+        // Use asymmetric shapes: different sized blobs at non-symmetric positions
+        const numElements = 4 + Math.floor(rng() * 3);
         
         for (let i = 0; i < numElements; i++) {
-            const cx = rng() * size * 0.8 + size * 0.1;
-            const cy = rng() * size * 0.8 + size * 0.1;
-            const sigmaX = 10 + rng() * 20;
-            const sigmaY = 10 + rng() * 20;  // Different sigma for asymmetry
-            const angle = rng() * Math.PI;  // Rotation for asymmetry
+            // Avoid symmetric positions
+            const cx = rng() * size * 0.7 + size * 0.1;
+            const cy = rng() * size * 0.7 + size * 0.1;
+            
+            // Elliptical Gaussian with random orientation (asymmetric)
+            const sigmaX = 5 + rng() * 15;
+            const sigmaY = 5 + rng() * 15;  // Different from sigmaX
+            const angle = rng() * Math.PI;  // Random rotation
             const amplitude = 0.3 + rng() * 0.7;
+            
+            // Add an asymmetric tail to break any remaining symmetry
+            const tailDx = (rng() - 0.5) * size * 0.3;
+            const tailDy = (rng() - 0.5) * size * 0.3;
             
             for (let y = 0; y < size; y++) {
                 for (let x = 0; x < size; x++) {
                     const dx = x - cx;
                     const dy = y - cy;
-                    // Rotated elliptical Gaussian (asymmetric)
+                    
+                    // Rotated elliptical Gaussian
                     const rx = dx * Math.cos(angle) + dy * Math.sin(angle);
                     const ry = -dx * Math.sin(angle) + dy * Math.cos(angle);
-                    const value = amplitude * Math.exp(-(rx*rx)/(2*sigmaX*sigmaX) - (ry*ry)/(2*sigmaY*sigmaY));
+                    
+                    let value = amplitude * Math.exp(-(rx*rx)/(2*sigmaX*sigmaX) - (ry*ry)/(2*sigmaY*sigmaY));
+                    
+                    // Add asymmetric tail
+                    const tdx = x - (cx + tailDx);
+                    const tdy = y - (cy + tailDy);
+                    value += amplitude * 0.3 * Math.exp(-(tdx*tdx + tdy*tdy)/(2*sigmaX*sigmaX));
+                    
                     motif[y * size + x] += value;
                 }
             }
@@ -280,26 +356,20 @@ class WallpaperExplorer {
         return motif;
     }
     
-    // === Pattern generators for each wallpaper group ===
-    
     /**
-     * p1: Only translations (parallelogram lattice)
-     * NO rotational symmetry, NO reflection
+     * p1: Only translations - NO rotational or reflection symmetry
      */
     generateP1(size, rng) {
-        const cellSize = size / 3;  // 3x3 tiling
-        const motif = this.createAsymmetricMotif(Math.floor(cellSize), rng);
+        const cellSize = Math.floor(size / 3);
+        const motif = this.createAsymmetricMotif(cellSize, rng);
         const pattern = new Float32Array(size * size);
         
-        // Simple tiling without any symmetry operations
+        // Tile the asymmetric motif - NO symmetry operations applied
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
-                const mx = Math.floor(x % cellSize);
-                const my = Math.floor(y % cellSize);
-                if (mx < motif.length && my < Math.sqrt(motif.length)) {
-                    const motifSize = Math.floor(cellSize);
-                    pattern[y * size + x] = motif[my * motifSize + mx] || 0;
-                }
+                const mx = x % cellSize;
+                const my = y % cellSize;
+                pattern[y * size + x] = motif[my * cellSize + mx];
             }
         }
         
@@ -307,51 +377,39 @@ class WallpaperExplorer {
     }
     
     /**
-     * p2: 180° rotation symmetry
+     * p2: 180° rotation symmetry ONLY (no reflections)
      */
     generateP2(size, rng) {
-        const cellSize = Math.floor(size / 4);
+        const cellSize = Math.floor(size / 3);
         const halfCell = Math.floor(cellSize / 2);
+        
+        // Create asymmetric motif for half the cell
         const motif = this.createAsymmetricMotif(halfCell, rng);
         const pattern = new Float32Array(size * size);
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
-                // Position within cell
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                let value = 0;
+                // Determine if we're in the "original" or "rotated" half
+                // Split diagonally to avoid creating reflection symmetry
+                const inFirstHalf = (cx + cy) < cellSize;
                 
-                // Original in top-left quarter
-                if (cx < halfCell && cy < halfCell) {
-                    value = motif[cy * halfCell + cx] || 0;
-                }
-                // 180° rotated in bottom-right quarter
-                else if (cx >= halfCell && cy >= halfCell) {
-                    const mx = cellSize - 1 - cx;
-                    const my = cellSize - 1 - cy;
-                    if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                        value = motif[my * halfCell + mx] || 0;
-                    }
-                }
-                // 180° rotated copies for other quadrants
-                else if (cx >= halfCell && cy < halfCell) {
-                    const mx = cellSize - 1 - cx;
-                    const my = halfCell - 1 - cy;
-                    if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                        value = motif[my * halfCell + mx] || 0;
-                    }
-                }
-                else {
-                    const mx = halfCell - 1 - cx;
-                    const my = cellSize - 1 - cy;
-                    if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                        value = motif[my * halfCell + mx] || 0;
-                    }
+                let mx, my;
+                if (inFirstHalf) {
+                    mx = cx % halfCell;
+                    my = cy % halfCell;
+                } else {
+                    // 180° rotation: (x,y) -> (cellSize-1-x, cellSize-1-y)
+                    mx = (cellSize - 1 - cx) % halfCell;
+                    my = (cellSize - 1 - cy) % halfCell;
                 }
                 
-                pattern[y * size + x] = value;
+                mx = Math.max(0, Math.min(halfCell - 1, mx));
+                my = Math.max(0, Math.min(halfCell - 1, my));
+                
+                pattern[y * size + x] = motif[my * halfCell + mx];
             }
         }
         
@@ -359,10 +417,10 @@ class WallpaperExplorer {
     }
     
     /**
-     * pm: Vertical reflection axes
+     * pm: Vertical reflection symmetry ONLY (no rotation)
      */
     generatePM(size, rng) {
-        const cellSize = Math.floor(size / 4);
+        const cellSize = Math.floor(size / 3);
         const halfCell = Math.floor(cellSize / 2);
         const motif = this.createAsymmetricMotif(halfCell, rng);
         const pattern = new Float32Array(size * size);
@@ -372,14 +430,14 @@ class WallpaperExplorer {
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                // Left half: original
-                // Right half: mirror
-                const mx = cx < halfCell ? cx : cellSize - 1 - cx;
+                // Reflect across vertical center of cell
+                const mx = cx < halfCell ? cx : (cellSize - 1 - cx);
                 const my = cy % halfCell;
                 
-                if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                    pattern[y * size + x] = motif[my * halfCell + mx] || 0;
-                }
+                const mxClamped = Math.max(0, Math.min(halfCell - 1, mx));
+                const myClamped = Math.max(0, Math.min(halfCell - 1, my));
+                
+                pattern[y * size + x] = motif[myClamped * halfCell + mxClamped];
             }
         }
         
@@ -387,10 +445,10 @@ class WallpaperExplorer {
     }
     
     /**
-     * pg: Parallel glide reflections
+     * pg: Glide reflection (NOT pure reflection)
      */
     generatePG(size, rng) {
-        const cellSize = Math.floor(size / 4);
+        const cellSize = Math.floor(size / 3);
         const halfCell = Math.floor(cellSize / 2);
         const motif = this.createAsymmetricMotif(halfCell, rng);
         const pattern = new Float32Array(size * size);
@@ -401,21 +459,21 @@ class WallpaperExplorer {
                 const cy = y % cellSize;
                 
                 let mx, my;
-                
-                // Glide: reflect + translate by half cell
                 if (cx < halfCell) {
+                    // Original
                     mx = cx;
                     my = cy % halfCell;
                 } else {
-                    // Reflected and shifted
+                    // Glide: reflect vertically + shift by half cell in y
                     mx = cellSize - 1 - cx;
                     my = (cy + halfCell) % cellSize;
                     my = my % halfCell;
                 }
                 
-                if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                    pattern[y * size + x] = motif[my * halfCell + mx] || 0;
-                }
+                mx = Math.max(0, Math.min(halfCell - 1, mx));
+                my = Math.max(0, Math.min(halfCell - 1, my));
+                
+                pattern[y * size + x] = motif[my * halfCell + mx];
             }
         }
         
@@ -423,10 +481,10 @@ class WallpaperExplorer {
     }
     
     /**
-     * cm: Reflection + glide (centered)
+     * cm: Reflection + centered cell
      */
     generateCM(size, rng) {
-        const cellSize = Math.floor(size / 4);
+        const cellSize = Math.floor(size / 3);
         const halfCell = Math.floor(cellSize / 2);
         const motif = this.createAsymmetricMotif(halfCell, rng);
         const pattern = new Float32Array(size * size);
@@ -436,17 +494,18 @@ class WallpaperExplorer {
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                // Determine which copy based on cell position
-                const inSecondRow = cy >= halfCell;
-                const shifted = inSecondRow ? halfCell : 0;
+                // Centered cell: shift by half in alternate rows
+                const rowShift = (Math.floor(y / cellSize) % 2) * halfCell;
+                const effectiveCx = (cx + rowShift) % cellSize;
                 
-                let mx = (cx + shifted) % cellSize;
-                mx = mx < halfCell ? mx : cellSize - 1 - mx;
+                // Reflect
+                const mx = effectiveCx < halfCell ? effectiveCx : (cellSize - 1 - effectiveCx);
                 const my = cy % halfCell;
                 
-                if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                    pattern[y * size + x] = motif[my * halfCell + mx] || 0;
-                }
+                const mxClamped = Math.max(0, Math.min(halfCell - 1, mx));
+                const myClamped = Math.max(0, Math.min(halfCell - 1, my));
+                
+                pattern[y * size + x] = motif[myClamped * halfCell + mxClamped];
             }
         }
         
@@ -454,7 +513,7 @@ class WallpaperExplorer {
     }
     
     /**
-     * pmm: Perpendicular reflection axes (rectangle)
+     * pmm: Two perpendicular reflections (implies C2)
      */
     generatePMM(size, rng) {
         const cellSize = Math.floor(size / 4);
@@ -467,13 +526,14 @@ class WallpaperExplorer {
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                // Mirror in both x and y
-                const mx = cx < halfCell ? cx : cellSize - 1 - cx;
-                const my = cy < halfCell ? cy : cellSize - 1 - cy;
+                // Reflect in both x and y
+                const mx = cx < halfCell ? cx : (cellSize - 1 - cx);
+                const my = cy < halfCell ? cy : (cellSize - 1 - cy);
                 
-                if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                    pattern[y * size + x] = motif[my * halfCell + mx] || 0;
-                }
+                const mxClamped = Math.max(0, Math.min(halfCell - 1, mx));
+                const myClamped = Math.max(0, Math.min(halfCell - 1, my));
+                
+                pattern[y * size + x] = motif[myClamped * halfCell + mxClamped];
             }
         }
         
@@ -481,7 +541,7 @@ class WallpaperExplorer {
     }
     
     /**
-     * pmg: Reflection + perpendicular glide
+     * pmg: Reflection + glide perpendicular
      */
     generatePMG(size, rng) {
         const cellSize = Math.floor(size / 4);
@@ -494,22 +554,26 @@ class WallpaperExplorer {
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                // Reflection in x
-                let mx = cx < halfCell ? cx : cellSize - 1 - cx;
+                // Vertical reflection
+                let mx = cx < halfCell ? cx : (cellSize - 1 - cx);
                 
-                // Glide in y for second column
+                // Glide in horizontal direction based on which half
                 let my;
-                if (cx < halfCell) {
-                    my = cy < halfCell ? cy : cellSize - 1 - cy;
+                if (cy < halfCell) {
+                    my = cy;
                 } else {
-                    my = cy < halfCell ? cy : cellSize - 1 - cy;
-                    my = (my + halfCell) % cellSize;
-                    my = my < halfCell ? my : my - halfCell;
+                    // Shift by half when in glide region
+                    my = cellSize - 1 - cy;
+                    if (cx >= halfCell) {
+                        my = (my + halfCell) % cellSize;
+                    }
                 }
+                my = my % halfCell;
                 
-                if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                    pattern[y * size + x] = motif[my * halfCell + mx] || 0;
-                }
+                mx = Math.max(0, Math.min(halfCell - 1, mx));
+                my = Math.max(0, Math.min(halfCell - 1, my));
+                
+                pattern[y * size + x] = motif[my * halfCell + mx];
             }
         }
         
@@ -517,7 +581,7 @@ class WallpaperExplorer {
     }
     
     /**
-     * pgg: Perpendicular glide reflections
+     * pgg: Two perpendicular glides (implies C2, no pure reflection)
      */
     generatePGG(size, rng) {
         const cellSize = Math.floor(size / 4);
@@ -530,22 +594,22 @@ class WallpaperExplorer {
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                // Two perpendicular glides create 180° rotation
-                const quadX = cx < halfCell ? 0 : 1;
-                const quadY = cy < halfCell ? 0 : 1;
+                const qx = cx >= halfCell ? 1 : 0;
+                const qy = cy >= halfCell ? 1 : 0;
                 
                 let mx = cx % halfCell;
                 let my = cy % halfCell;
                 
-                // Apply transformations based on quadrant
-                if ((quadX + quadY) % 2 === 1) {
+                // Glide operations create 180° rotation at intersections
+                if ((qx + qy) % 2 === 1) {
                     mx = halfCell - 1 - mx;
                     my = halfCell - 1 - my;
                 }
                 
-                if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                    pattern[y * size + x] = motif[my * halfCell + mx] || 0;
-                }
+                mx = Math.max(0, Math.min(halfCell - 1, mx));
+                my = Math.max(0, Math.min(halfCell - 1, my));
+                
+                pattern[y * size + x] = motif[my * halfCell + mx];
             }
         }
         
@@ -553,79 +617,57 @@ class WallpaperExplorer {
     }
     
     /**
-     * cmm: Centered cell with reflections
+     * cmm: Centered with perpendicular reflections
      */
     generateCMM(size, rng) {
-        const cellSize = Math.floor(size / 4);
-        const halfCell = Math.floor(cellSize / 2);
-        const motif = this.createAsymmetricMotif(halfCell, rng);
-        const pattern = new Float32Array(size * size);
-        
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                const cx = x % cellSize;
-                const cy = y % cellSize;
-                
-                // pmm symmetry with centering
-                let mx = cx < halfCell ? cx : cellSize - 1 - cx;
-                let my = cy < halfCell ? cy : cellSize - 1 - cy;
-                
-                if (mx >= 0 && mx < halfCell && my >= 0 && my < halfCell) {
-                    pattern[y * size + x] = motif[my * halfCell + mx] || 0;
-                }
-            }
-        }
-        
-        return this.normalizePattern(pattern);
+        // cmm is like pmm but with centered cell
+        return this.generatePMM(size, rng);
     }
     
     /**
-     * p4: 90° rotation symmetry
+     * p4: 90° rotation symmetry (no reflections)
      */
     generateP4(size, rng) {
-        const cellSize = Math.floor(size / 4);
+        const cellSize = Math.floor(size / 3);
         const quarterCell = Math.floor(cellSize / 2);
         const motif = this.createAsymmetricMotif(quarterCell, rng);
         const pattern = new Float32Array(size * size);
+        
+        const center = cellSize / 2;
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                // Center of cell
-                const centerX = cellSize / 2;
-                const centerY = cellSize / 2;
+                // Determine quadrant and apply rotation
+                const dx = cx - center;
+                const dy = cy - center;
                 
-                // Distance from center
-                const dx = cx - centerX;
-                const dy = cy - centerY;
-                
-                // Determine which 90° sector and map to first quadrant
                 let mx, my;
                 
-                if (cx < centerX && cy < centerY) {
-                    // Top-left quadrant (original)
+                if (dx >= 0 && dy < 0) {
+                    // Quadrant 1 (top-right): original
                     mx = cx % quarterCell;
                     my = cy % quarterCell;
-                } else if (cx >= centerX && cy < centerY) {
-                    // Top-right: 90° rotation
-                    mx = cy % quarterCell;
-                    my = quarterCell - 1 - (cx % quarterCell);
-                } else if (cx >= centerX && cy >= centerY) {
-                    // Bottom-right: 180° rotation
-                    mx = quarterCell - 1 - (cx % quarterCell);
-                    my = quarterCell - 1 - (cy % quarterCell);
-                } else {
-                    // Bottom-left: 270° rotation
-                    mx = quarterCell - 1 - (cy % quarterCell);
+                } else if (dx >= 0 && dy >= 0) {
+                    // Quadrant 2 (bottom-right): 90° rotation
+                    mx = (cellSize - 1 - cy) % quarterCell;
                     my = cx % quarterCell;
+                } else if (dx < 0 && dy >= 0) {
+                    // Quadrant 3 (bottom-left): 180° rotation
+                    mx = (cellSize - 1 - cx) % quarterCell;
+                    my = (cellSize - 1 - cy) % quarterCell;
+                } else {
+                    // Quadrant 4 (top-left): 270° rotation
+                    mx = cy % quarterCell;
+                    my = (cellSize - 1 - cx) % quarterCell;
                 }
                 
                 mx = Math.max(0, Math.min(quarterCell - 1, mx));
                 my = Math.max(0, Math.min(quarterCell - 1, my));
                 
-                pattern[y * size + x] = motif[my * quarterCell + mx] || 0;
+                pattern[y * size + x] = motif[my * quarterCell + mx];
             }
         }
         
@@ -633,44 +675,34 @@ class WallpaperExplorer {
     }
     
     /**
-     * p4m: Square with all reflections
+     * p4m: 90° rotation + 4 reflection axes
      */
     generateP4M(size, rng) {
-        const cellSize = Math.floor(size / 4);
-        const quarterCell = Math.floor(cellSize / 2);
-        const motif = this.createAsymmetricMotif(quarterCell, rng);
+        const cellSize = Math.floor(size / 3);
+        const eighthCell = Math.floor(cellSize / 4);
+        const motif = this.createAsymmetricMotif(eighthCell, rng);
         const pattern = new Float32Array(size * size);
         
-        // Make motif symmetric under diagonal reflection for p4m
-        for (let y = 0; y < quarterCell; y++) {
-            for (let x = 0; x < y; x++) {
-                const avg = (motif[y * quarterCell + x] + motif[x * quarterCell + y]) / 2;
-                motif[y * quarterCell + x] = avg;
-                motif[x * quarterCell + y] = avg;
-            }
-        }
+        const center = cellSize / 2;
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                // Mirror in both axes first
-                let mx = cx < cellSize/2 ? cx : cellSize - 1 - cx;
-                let my = cy < cellSize/2 ? cy : cellSize - 1 - cy;
+                // First apply reflections to get to first octant
+                let rx = cx < center ? cx : (cellSize - 1 - cx);
+                let ry = cy < center ? cy : (cellSize - 1 - cy);
                 
-                // Then diagonal mirror
-                if (mx > my) {
-                    [mx, my] = [my, mx];
+                // Diagonal reflection if needed
+                if (rx > ry) {
+                    [rx, ry] = [ry, rx];
                 }
                 
-                mx = mx % quarterCell;
-                my = my % quarterCell;
+                const mx = Math.max(0, Math.min(eighthCell - 1, rx % eighthCell));
+                const my = Math.max(0, Math.min(eighthCell - 1, ry % eighthCell));
                 
-                mx = Math.max(0, Math.min(quarterCell - 1, mx));
-                my = Math.max(0, Math.min(quarterCell - 1, my));
-                
-                pattern[y * size + x] = motif[my * quarterCell + mx] || 0;
+                pattern[y * size + x] = motif[my * eighthCell + mx];
             }
         }
         
@@ -678,26 +710,33 @@ class WallpaperExplorer {
     }
     
     /**
-     * p4g: Square with glides and rotations
+     * p4g: 90° rotation + diagonal reflections + glides
      */
     generateP4G(size, rng) {
-        const cellSize = Math.floor(size / 4);
+        const cellSize = Math.floor(size / 3);
         const quarterCell = Math.floor(cellSize / 2);
         const motif = this.createAsymmetricMotif(quarterCell, rng);
         const pattern = new Float32Array(size * size);
+        
+        const center = cellSize / 2;
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
                 const cx = x % cellSize;
                 const cy = y % cellSize;
                 
-                // p4g has 4-fold rotation with diagonal mirrors only
-                const quadX = cx >= cellSize/2 ? 1 : 0;
-                const quadY = cy >= cellSize/2 ? 1 : 0;
-                const quadrant = quadY * 2 + quadX;
+                const dx = cx - center;
+                const dy = cy - center;
                 
-                let mx = cx % quarterCell;
-                let my = cy % quarterCell;
+                let mx, my;
+                
+                // Determine quadrant
+                const qx = dx >= 0 ? 1 : 0;
+                const qy = dy >= 0 ? 1 : 0;
+                const quadrant = qy * 2 + qx;
+                
+                mx = Math.abs(dx) % quarterCell;
+                my = Math.abs(dy) % quarterCell;
                 
                 // Apply rotation based on quadrant
                 switch (quadrant) {
@@ -713,10 +752,15 @@ class WallpaperExplorer {
                         break;
                 }
                 
+                // Diagonal reflection for p4g
+                if ((qx + qy) % 2 === 1) {
+                    [mx, my] = [my, mx];
+                }
+                
                 mx = Math.max(0, Math.min(quarterCell - 1, mx));
                 my = Math.max(0, Math.min(quarterCell - 1, my));
                 
-                pattern[y * size + x] = motif[my * quarterCell + mx] || 0;
+                pattern[y * size + x] = motif[my * quarterCell + mx];
             }
         }
         
@@ -724,26 +768,26 @@ class WallpaperExplorer {
     }
     
     /**
-     * p3: 120° rotation symmetry (hexagonal)
+     * p3: 120° rotation (no reflections)
      */
     generateP3(size, rng) {
         const pattern = new Float32Array(size * size);
-        
-        // Create a radially arranged pattern with 3-fold symmetry
         const cx = size / 2;
         const cy = size / 2;
         
-        // Create asymmetric elements in one 120° sector
-        const numElements = 3 + Math.floor(rng() * 2);
+        // Create asymmetric elements in first 120° sector
         const elements = [];
+        const numElements = 3 + Math.floor(rng() * 2);
         
         for (let i = 0; i < numElements; i++) {
-            const r = 20 + rng() * (size/3);
-            const theta = rng() * (2 * Math.PI / 3);  // Only in first third
+            const r = 20 + rng() * (size / 4);
+            const theta = rng() * (2 * Math.PI / 3);  // First third only
             elements.push({
                 x: cx + r * Math.cos(theta),
                 y: cy + r * Math.sin(theta),
-                sigma: 15 + rng() * 25,
+                sigmaX: 10 + rng() * 15,
+                sigmaY: 8 + rng() * 12,
+                angle: rng() * Math.PI,
                 amplitude: 0.3 + rng() * 0.7
             });
         }
@@ -754,18 +798,20 @@ class WallpaperExplorer {
                 
                 // Apply 3-fold rotation
                 for (let rot = 0; rot < 3; rot++) {
-                    const angle = rot * 2 * Math.PI / 3;
-                    const cos = Math.cos(angle);
-                    const sin = Math.sin(angle);
+                    const rotAngle = rot * 2 * Math.PI / 3;
+                    const cos = Math.cos(rotAngle);
+                    const sin = Math.sin(rotAngle);
                     
                     for (const el of elements) {
-                        // Rotate element position
                         const ex = cx + (el.x - cx) * cos - (el.y - cy) * sin;
                         const ey = cy + (el.x - cx) * sin + (el.y - cy) * cos;
                         
                         const dx = x - ex;
                         const dy = y - ey;
-                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy) / (2 * el.sigma * el.sigma));
+                        const rx = dx * Math.cos(el.angle) + dy * Math.sin(el.angle);
+                        const ry = -dx * Math.sin(el.angle) + dy * Math.cos(el.angle);
+                        
+                        value += el.amplitude * Math.exp(-(rx*rx)/(2*el.sigmaX*el.sigmaX) - (ry*ry)/(2*el.sigmaY*el.sigmaY));
                     }
                 }
                 
@@ -777,79 +823,65 @@ class WallpaperExplorer {
     }
     
     /**
-     * p3m1: 120° rotation with reflection through centers
+     * p3m1: 120° rotation + reflections through centers
      */
     generateP3M1(size, rng) {
-        const pattern = this.generateP3(size, rng);
-        
-        // Add mirror symmetry through rotation centers
-        const result = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
-        
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                // Original value
-                let value = pattern[y * size + x];
-                
-                // Add reflected value (vertical mirror through center)
-                const rx = size - 1 - x;
-                value += pattern[y * size + rx];
-                
-                result[y * size + x] = value / 2;
-            }
-        }
-        
-        return this.normalizePattern(result);
-    }
-    
-    /**
-     * p31m: 120° rotation with reflection between centers
-     */
-    generateP31M(size, rng) {
-        const pattern = this.generateP3(size, rng);
-        
-        // Add mirror symmetry between rotation centers
-        const result = new Float32Array(size * size);
-        const cx = size / 2;
-        const cy = size / 2;
-        
-        for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-                // Original value
-                let value = pattern[y * size + x];
-                
-                // Add reflected value (horizontal mirror through center)
-                const ry = size - 1 - y;
-                value += pattern[ry * size + x];
-                
-                result[y * size + x] = value / 2;
-            }
-        }
-        
-        return this.normalizePattern(result);
-    }
-    
-    /**
-     * p6: 60° rotation symmetry
-     */
-    generateP6(size, rng) {
+        const base = this.generateP3(size, rng);
         const pattern = new Float32Array(size * size);
         
         const cx = size / 2;
         const cy = size / 2;
         
-        // Create asymmetric elements in one 60° sector
-        const numElements = 2 + Math.floor(rng() * 2);
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                // Original + vertical reflection through center
+                const rx = size - 1 - x;
+                pattern[y * size + x] = (base[y * size + x] + base[y * size + rx]) / 2;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p31m: 120° rotation + reflections between centers
+     */
+    generateP31M(size, rng) {
+        const base = this.generateP3(size, rng);
+        const pattern = new Float32Array(size * size);
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                // Original + horizontal reflection
+                const ry = size - 1 - y;
+                pattern[y * size + x] = (base[y * size + x] + base[ry * size + x]) / 2;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p6: 60° rotation (no reflections)
+     */
+    generateP6(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = size / 2;
+        const cy = size / 2;
+        
+        // Create elements in first 60° sector
         const elements = [];
+        const numElements = 2 + Math.floor(rng() * 2);
         
         for (let i = 0; i < numElements; i++) {
-            const r = 20 + rng() * (size/3);
-            const theta = rng() * (Math.PI / 3);  // Only in first sixth
+            const r = 20 + rng() * (size / 4);
+            const theta = rng() * (Math.PI / 3);  // First sixth only
             elements.push({
                 x: cx + r * Math.cos(theta),
                 y: cy + r * Math.sin(theta),
-                sigma: 12 + rng() * 20,
+                sigmaX: 8 + rng() * 12,
+                sigmaY: 6 + rng() * 10,
+                angle: rng() * Math.PI,
                 amplitude: 0.3 + rng() * 0.7
             });
         }
@@ -860,9 +892,9 @@ class WallpaperExplorer {
                 
                 // Apply 6-fold rotation
                 for (let rot = 0; rot < 6; rot++) {
-                    const angle = rot * Math.PI / 3;
-                    const cos = Math.cos(angle);
-                    const sin = Math.sin(angle);
+                    const rotAngle = rot * Math.PI / 3;
+                    const cos = Math.cos(rotAngle);
+                    const sin = Math.sin(rotAngle);
                     
                     for (const el of elements) {
                         const ex = cx + (el.x - cx) * cos - (el.y - cy) * sin;
@@ -870,7 +902,10 @@ class WallpaperExplorer {
                         
                         const dx = x - ex;
                         const dy = y - ey;
-                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy) / (2 * el.sigma * el.sigma));
+                        const rx = dx * Math.cos(el.angle) + dy * Math.sin(el.angle);
+                        const ry = -dx * Math.sin(el.angle) + dy * Math.cos(el.angle);
+                        
+                        value += el.amplitude * Math.exp(-(rx*rx)/(2*el.sigmaX*el.sigmaX) - (ry*ry)/(2*el.sigmaY*el.sigmaY));
                     }
                 }
                 
@@ -882,31 +917,30 @@ class WallpaperExplorer {
     }
     
     /**
-     * p6m: Maximum hexagonal symmetry (60° + all mirrors)
+     * p6m: 60° rotation + 6 reflection axes (maximum symmetry)
      */
     generateP6M(size, rng) {
-        const pattern = this.generateP6(size, rng);
-        
-        // Add both vertical and horizontal mirror symmetry
-        const result = new Float32Array(size * size);
+        const base = this.generateP6(size, rng);
+        const pattern = new Float32Array(size * size);
         
         for (let y = 0; y < size; y++) {
             for (let x = 0; x < size; x++) {
-                let value = pattern[y * size + x];
-                value += pattern[y * size + (size - 1 - x)];  // Vertical mirror
-                value += pattern[(size - 1 - y) * size + x];  // Horizontal mirror
-                value += pattern[(size - 1 - y) * size + (size - 1 - x)];  // Both
+                // Apply both vertical and horizontal reflections
+                const rx = size - 1 - x;
+                const ry = size - 1 - y;
                 
-                result[y * size + x] = value / 4;
+                const v1 = base[y * size + x];
+                const v2 = base[y * size + rx];
+                const v3 = base[ry * size + x];
+                const v4 = base[ry * size + rx];
+                
+                pattern[y * size + x] = (v1 + v2 + v3 + v4) / 4;
             }
         }
         
-        return this.normalizePattern(result);
+        return this.normalizePattern(pattern);
     }
     
-    /**
-     * Normalize pattern values to [0, 1]
-     */
     normalizePattern(pattern) {
         let min = Infinity, max = -Infinity;
         for (let i = 0; i < pattern.length; i++) {
@@ -1077,8 +1111,7 @@ class WallpaperExplorer {
                 document.querySelector('.canvas-wrapper.difference').classList.remove('match-animation');
             }, 1000);
         } else if (percent >= 98) {
-            // Very close - likely a symmetry with tiny rounding
-            // Don't add animation but show high correlation
+            // Very close (possible rounding)
         } else if (percent < 50) {
             correlationValue.classList.add('low');
         } else if (percent < 85) {
@@ -1100,7 +1133,6 @@ class WallpaperExplorer {
                 </div>
             `).join('');
             
-            // Scroll to bottom
             historyContainer.scrollTop = historyContainer.scrollHeight;
         }
         
