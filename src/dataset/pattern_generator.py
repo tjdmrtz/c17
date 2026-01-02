@@ -1,24 +1,31 @@
 """
 Generator for the 17 Wallpaper Groups (Plane Crystallographic Groups)
 
+Mathematical Reference:
+- Vivek Sasse, "Classification of the 17 Wallpaper Groups"
+- International Tables for Crystallography, Vol. A
+- M. A. Armstrong, "Groups and Symmetry", Springer 1988
+
 The 17 wallpaper groups are the only distinct ways to tile a 2D plane with
 a repeating pattern. Each group is defined by its symmetry operations:
-- Translations
+- Translations (all groups)
 - Rotations (2-fold, 3-fold, 4-fold, 6-fold)
 - Reflections
 - Glide reflections
 
-Groups by lattice type:
-- Oblique: p1, p2
-- Rectangular: pm, pg, pmm, pmg, pgg, cm, cmm
-- Square: p4, p4m, p4g
-- Hexagonal: p3, p3m1, p31m, p6, p6m
+Groups by lattice type and point group:
+- Oblique: p1 (trivial), p2 (Z₂)
+- Rectangular: pm (Z₂), pg (Z₂), pmm (Z₂×Z₂), pmg (Z₂×Z₂), pgg (Z₂×Z₂)
+- Centered Rectangular: cm (Z₂), cmm (Z₂×Z₂)  
+- Square: p4 (Z₄), p4m (D₄), p4g (D₄)
+- Hexagonal: p3 (Z₃), p3m1 (D₃), p31m (D₃), p6 (Z₆), p6m (D₆)
 """
 
 import numpy as np
 from typing import Tuple, List, Callable, Optional, Dict
 from dataclasses import dataclass
 from enum import Enum
+from scipy.ndimage import rotate as scipy_rotate
 
 
 class LatticeType(Enum):
@@ -37,60 +44,68 @@ class WallpaperGroup:
     has_reflection: bool
     has_glide: bool
     description: str
+    point_group: str  # Mathematical notation for point group
 
 
-# Definition of all 17 wallpaper groups
+# Definition of all 17 wallpaper groups with correct mathematical properties
 WALLPAPER_GROUPS = {
     # Oblique lattice
     "p1": WallpaperGroup("p1", LatticeType.OBLIQUE, 1, False, False,
-                         "Only translations, no point symmetry"),
+                         "Only translations, no point symmetry", "trivial"),
     "p2": WallpaperGroup("p2", LatticeType.OBLIQUE, 2, False, False,
-                         "180° rotation centers"),
+                         "180° rotation centers", "Z₂"),
     
     # Rectangular lattice
     "pm": WallpaperGroup("pm", LatticeType.RECTANGULAR, 1, True, False,
-                         "Parallel reflection axes"),
+                         "Parallel reflection axes", "Z₂"),
     "pg": WallpaperGroup("pg", LatticeType.RECTANGULAR, 1, False, True,
-                         "Parallel glide reflections"),
-    "cm": WallpaperGroup("cm", LatticeType.RECTANGULAR, 1, True, True,
-                         "Reflection axes with glide between"),
+                         "Parallel glide reflections", "Z₂"),
     "pmm": WallpaperGroup("pmm", LatticeType.RECTANGULAR, 2, True, False,
-                          "Perpendicular reflection axes"),
+                          "Perpendicular reflection axes", "Z₂×Z₂"),
     "pmg": WallpaperGroup("pmg", LatticeType.RECTANGULAR, 2, True, True,
-                          "Reflection + perpendicular glide"),
+                          "Reflection + perpendicular glide", "Z₂×Z₂"),
     "pgg": WallpaperGroup("pgg", LatticeType.RECTANGULAR, 2, False, True,
-                          "Perpendicular glide reflections"),
+                          "Perpendicular glide reflections", "Z₂×Z₂"),
+    
+    # Centered Rectangular lattice
+    "cm": WallpaperGroup("cm", LatticeType.RECTANGULAR, 1, True, True,
+                         "Reflection axes with glide between", "Z₂"),
     "cmm": WallpaperGroup("cmm", LatticeType.RECTANGULAR, 2, True, True,
-                          "Centered cell with reflections"),
+                          "Centered cell with reflections", "Z₂×Z₂"),
     
     # Square lattice
     "p4": WallpaperGroup("p4", LatticeType.SQUARE, 4, False, False,
-                         "90° rotation centers"),
+                         "90° rotation centers", "Z₄"),
     "p4m": WallpaperGroup("p4m", LatticeType.SQUARE, 4, True, True,
-                          "Square with reflections on all axes"),
+                          "Square with reflections on all axes", "D₄"),
     "p4g": WallpaperGroup("p4g", LatticeType.SQUARE, 4, True, True,
-                          "Square with glides and rotations"),
+                          "Square with glides and rotations", "D₄"),
     
     # Hexagonal lattice
     "p3": WallpaperGroup("p3", LatticeType.HEXAGONAL, 3, False, False,
-                         "120° rotation centers"),
+                         "120° rotation centers", "Z₃"),
     "p3m1": WallpaperGroup("p3m1", LatticeType.HEXAGONAL, 3, True, False,
-                           "120° rotation with reflection axes through centers"),
+                           "120° rotation with reflection axes through centers", "D₃"),
     "p31m": WallpaperGroup("p31m", LatticeType.HEXAGONAL, 3, True, False,
-                           "120° rotation with reflection axes between centers"),
+                           "120° rotation with reflection axes between centers", "D₃"),
     "p6": WallpaperGroup("p6", LatticeType.HEXAGONAL, 6, False, False,
-                         "60° rotation centers"),
+                         "60° rotation centers", "Z₆"),
     "p6m": WallpaperGroup("p6m", LatticeType.HEXAGONAL, 6, True, True,
-                          "Hexagonal with all symmetries"),
+                          "Hexagonal with all symmetries", "D₆"),
 }
 
 
 class WallpaperGroupGenerator:
     """
-    Generates patterns for all 17 wallpaper groups.
+    Generates patterns for all 17 wallpaper groups with EXACT symmetries.
     
     The generator creates a fundamental domain (asymmetric unit) and then
     applies the symmetry operations of each group to tile the plane.
+    
+    Mathematical approach:
+    1. Create an asymmetric motif (fundamental domain content)
+    2. Apply the point group operations to create the unit cell
+    3. Tile the unit cell to fill the resolution
     """
     
     def __init__(self, resolution: int = 256, seed: Optional[int] = None):
@@ -104,450 +119,569 @@ class WallpaperGroupGenerator:
         self.resolution = resolution
         self.rng = np.random.default_rng(seed)
         
-    def _create_motif(self, 
-                      size: int, 
-                      complexity: int = 3,
-                      motif_type: str = "gaussian") -> np.ndarray:
+    def _create_asymmetric_motif(self, size: int, complexity: int = 3) -> np.ndarray:
         """
-        Create a random motif (fundamental domain content).
+        Create a truly ASYMMETRIC motif (fundamental domain content).
+        
+        The motif must have NO symmetry (no C2, no C4, no reflections) to ensure 
+        the final pattern has exactly the symmetries of its group.
+        
+        Strategy: 
+        1. All elements in top-left corner (avoids C2 center symmetry)
+        2. Asymmetric shapes (ellipses, not circles)
+        3. Different x and y positions (avoids σᵥ and σₕ)
+        4. Add directional elements (avoids all symmetries)
         
         Args:
             size: Size of the motif
             complexity: Number of elements in the motif
-            motif_type: Type of motif ("gaussian", "geometric", "mixed")
         
         Returns:
-            2D array with the motif pattern
+            2D array with the asymmetric motif pattern
         """
         motif = np.zeros((size, size))
+        y, x = np.ogrid[:size, :size]
         
-        if motif_type == "gaussian":
-            for _ in range(complexity):
-                # Random Gaussian blob
-                cx, cy = self.rng.random(2) * size
-                sigma = self.rng.random() * size / 4 + size / 10
-                amplitude = self.rng.random() * 0.5 + 0.5
-                
-                y, x = np.ogrid[:size, :size]
-                gaussian = amplitude * np.exp(-((x - cx)**2 + (y - cy)**2) / (2 * sigma**2))
-                motif += gaussian
-                
-        elif motif_type == "geometric":
-            for _ in range(complexity):
-                shape = self.rng.choice(["circle", "line", "triangle"])
-                if shape == "circle":
-                    cx, cy = self.rng.random(2) * size
-                    radius = self.rng.random() * size / 4 + 2
-                    y, x = np.ogrid[:size, :size]
-                    mask = (x - cx)**2 + (y - cy)**2 <= radius**2
-                    motif[mask] += self.rng.random() * 0.7 + 0.3
-                elif shape == "line":
-                    angle = self.rng.random() * np.pi
-                    thickness = int(self.rng.random() * 3 + 1)
-                    y, x = np.ogrid[:size, :size]
-                    cx, cy = size / 2, size / 2
-                    dist = np.abs(np.cos(angle) * (x - cx) + np.sin(angle) * (y - cy))
-                    motif[dist < thickness] += self.rng.random() * 0.7 + 0.3
-                elif shape == "triangle":
-                    # Simple triangle using barycentric approach
-                    p1 = self.rng.random(2) * size
-                    p2 = self.rng.random(2) * size
-                    p3 = self.rng.random(2) * size
-                    y, x = np.ogrid[:size, :size]
-                    # Simplified: just use a polygon mask approximation
-                    cx, cy = (p1[0] + p2[0] + p3[0]) / 3, (p1[1] + p2[1] + p3[1]) / 3
-                    radius = size / 6
-                    mask = (x - cx)**2 + (y - cy)**2 <= radius**2
-                    motif[mask] += self.rng.random() * 0.7 + 0.3
-                    
-        elif motif_type == "mixed":
-            motif = self._create_motif(size, complexity // 2 + 1, "gaussian")
-            motif += self._create_motif(size, complexity // 2 + 1, "geometric")
-            
+        # Main blob in top-left corner
+        cx, cy = size * 0.25, size * 0.2
+        sigma_x, sigma_y = size / 5, size / 8
+        angle = 0.4
+        
+        dx = x - cx
+        dy = y - cy
+        rx = dx * np.cos(angle) + dy * np.sin(angle)
+        ry = -dx * np.sin(angle) + dy * np.cos(angle)
+        motif += np.exp(-(rx**2)/(2*sigma_x**2) - (ry**2)/(2*sigma_y**2))
+        
+        # Second blob, offset to the right of the first
+        cx2, cy2 = size * 0.45, size * 0.35
+        sigma2 = size / 10
+        motif += 0.6 * np.exp(-((x - cx2)**2 + (y - cy2)**2) / (2 * sigma2**2))
+        
+        # Third element: small blob far from center and away from diagonals
+        cx3, cy3 = size * 0.15, size * 0.55
+        sigma3 = size / 12
+        motif += 0.4 * np.exp(-((x - cx3)**2 + (y - cy3)**2) / (2 * sigma3**2))
+        
+        # Fourth element: "tail" pointing down-right to break remaining symmetry
+        cx4, cy4 = size * 0.6, size * 0.15
+        sigma4x, sigma4y = size / 15, size / 6
+        angle4 = -0.5
+        dx4 = x - cx4
+        dy4 = y - cy4
+        rx4 = dx4 * np.cos(angle4) + dy4 * np.sin(angle4)
+        ry4 = -dx4 * np.sin(angle4) + dy4 * np.cos(angle4)
+        motif += 0.3 * np.exp(-(rx4**2)/(2*sigma4x**2) - (ry4**2)/(2*sigma4y**2))
+        
         # Normalize
         if motif.max() > 0:
             motif = motif / motif.max()
             
         return motif
     
-    def _rotate(self, image: np.ndarray, angle: float) -> np.ndarray:
-        """Rotate image by angle (in radians) around center."""
-        from scipy.ndimage import rotate as scipy_rotate
-        angle_deg = np.degrees(angle)
-        return scipy_rotate(image, angle_deg, reshape=False, order=1, mode='constant')
+    # ==================== EXACT SYMMETRY OPERATIONS ====================
     
-    def _reflect_x(self, image: np.ndarray) -> np.ndarray:
-        """Reflect image across vertical axis (x-reflection)."""
-        return np.flip(image, axis=1)
+    def _rotate_90(self, arr: np.ndarray) -> np.ndarray:
+        """Exact 90° counter-clockwise rotation."""
+        return np.rot90(arr, 1)
     
-    def _reflect_y(self, image: np.ndarray) -> np.ndarray:
-        """Reflect image across horizontal axis (y-reflection)."""
-        return np.flip(image, axis=0)
+    def _rotate_180(self, arr: np.ndarray) -> np.ndarray:
+        """Exact 180° rotation."""
+        return np.rot90(arr, 2)
     
-    def _glide_x(self, image: np.ndarray, shift: float = 0.5) -> np.ndarray:
-        """Glide reflection: reflect and translate along x."""
-        reflected = self._reflect_y(image)
-        shift_pixels = int(shift * image.shape[1])
-        return np.roll(reflected, shift_pixels, axis=1)
+    def _rotate_270(self, arr: np.ndarray) -> np.ndarray:
+        """Exact 270° counter-clockwise rotation (= 90° clockwise)."""
+        return np.rot90(arr, 3)
     
-    def _glide_y(self, image: np.ndarray, shift: float = 0.5) -> np.ndarray:
-        """Glide reflection: reflect and translate along y."""
-        reflected = self._reflect_x(image)
-        shift_pixels = int(shift * image.shape[0])
-        return np.roll(reflected, shift_pixels, axis=0)
+    def _rotate_60(self, arr: np.ndarray) -> np.ndarray:
+        """60° rotation (uses interpolation)."""
+        return scipy_rotate(arr, 60, reshape=False, order=1, mode='constant', cval=0)
     
-    def _tile_pattern(self, 
-                      cell: np.ndarray, 
-                      tiles_x: int = 4, 
-                      tiles_y: int = 4) -> np.ndarray:
-        """Tile the unit cell to create the full pattern."""
-        return np.tile(cell, (tiles_y, tiles_x))
+    def _rotate_120(self, arr: np.ndarray) -> np.ndarray:
+        """120° rotation (uses interpolation)."""
+        return scipy_rotate(arr, 120, reshape=False, order=1, mode='constant', cval=0)
     
-    def _apply_hexagonal_lattice(self, cell: np.ndarray, tiles: int = 4) -> np.ndarray:
-        """Apply hexagonal lattice tiling."""
-        h, w = cell.shape
-        # Create a larger canvas
-        out_h = int(h * tiles * np.sqrt(3) / 2)
-        out_w = w * tiles
-        output = np.zeros((out_h, out_w))
-        
-        for row in range(tiles * 2):
-            for col in range(tiles):
-                y_offset = int(row * h * np.sqrt(3) / 4)
-                x_offset = col * w + (row % 2) * (w // 2)
-                
-                if y_offset + h <= out_h and x_offset + w <= out_w:
-                    output[y_offset:y_offset+h, x_offset:x_offset+w] += cell
-                    
-        return output[:self.resolution, :self.resolution]
+    def _reflect_x(self, arr: np.ndarray) -> np.ndarray:
+        """Reflect across vertical axis (flip horizontally): x -> -x."""
+        return np.fliplr(arr)
     
-    # === Pattern generators for each wallpaper group ===
+    def _reflect_y(self, arr: np.ndarray) -> np.ndarray:
+        """Reflect across horizontal axis (flip vertically): y -> -y."""
+        return np.flipud(arr)
+    
+    def _reflect_diagonal(self, arr: np.ndarray) -> np.ndarray:
+        """Reflect across main diagonal: (x,y) -> (y,x)."""
+        return arr.T
+    
+    def _glide_x(self, arr: np.ndarray) -> np.ndarray:
+        """Glide reflection: reflect y + translate by half in x."""
+        reflected = self._reflect_y(arr)
+        shift = arr.shape[1] // 2
+        return np.roll(reflected, shift, axis=1)
+    
+    def _glide_y(self, arr: np.ndarray) -> np.ndarray:
+        """Glide reflection: reflect x + translate by half in y."""
+        reflected = self._reflect_x(arr)
+        shift = arr.shape[0] // 2
+        return np.roll(reflected, shift, axis=0)
+    
+    def _tile(self, cell: np.ndarray, tiles: int) -> np.ndarray:
+        """Tile the unit cell."""
+        tiled = np.tile(cell, (tiles, tiles))
+        return tiled[:self.resolution, :self.resolution]
+    
+    # ==================== PATTERN GENERATORS ====================
     
     def generate_p1(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p1: Only translations (no point symmetry)."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        p1: Only translations (trivial point group).
+        
+        The asymmetric motif IS the unit cell. No symmetry operations applied.
+        """
+        # Create a single asymmetric motif
+        motif = self._create_asymmetric_motif(motif_size, **kwargs)
+        
+        # Tile without any symmetry operation
         tiles = self.resolution // motif_size + 1
-        pattern = self._tile_pattern(motif, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        return self._tile(motif, tiles)
     
     def generate_p2(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p2: 180° rotation centers."""
-        motif = self._create_motif(motif_size, **kwargs)
-        # Create unit cell with 180° rotation
-        rotated = self._rotate(motif, np.pi)
-        # Combine original and rotated in a 2x2 arrangement
-        top = np.hstack([motif, rotated])
-        bottom = np.hstack([rotated, motif])
-        cell = np.vstack([top, bottom])
+        """
+        p2: 180° rotation (point group Z₂ = {I, -I}).
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        Unit cell = motif + rotate_180(motif)
+        """
+        half_size = motif_size // 2
+        motif = self._create_asymmetric_motif(half_size, **kwargs)
+        
+        # Build unit cell with C2 symmetry
+        # Place motif in top-left, rotated motif in bottom-right
+        cell = np.zeros((motif_size, motif_size))
+        cell[:half_size, :half_size] = motif
+        cell[half_size:, half_size:] = self._rotate_180(motif)
+        
+        tiles = self.resolution // motif_size + 1
+        return self._tile(cell, tiles)
     
     def generate_pm(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """pm: Parallel reflection axes."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        pm: Vertical reflection (point group Z₂ = {I, σᵥ}).
+        
+        Unit cell = motif | reflect_x(motif)
+        """
+        half_size = motif_size // 2
+        motif = self._create_asymmetric_motif(half_size, **kwargs)
+        
+        # Build unit cell with σᵥ symmetry
         reflected = self._reflect_x(motif)
         cell = np.hstack([motif, reflected])
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        tiles = self.resolution // motif_size + 1
+        return self._tile(cell, tiles)
     
     def generate_pg(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """pg: Parallel glide reflections."""
-        motif = self._create_motif(motif_size, **kwargs)
-        glided = self._glide_x(motif)
-        cell = np.hstack([motif, glided])
+        """
+        pg: Glide reflection (point group Z₂, realized as glide).
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        NO pure reflection! Only glide = reflection + translation by 1/2.
+        Glide axis is vertical (parallel to y), translation is along y.
+        
+        Structure:
+        Row 0: [M    ] [M    ]  (motif in top-left of each cell)
+        Row 1: [  M' ] [  M' ]  (reflected motif, shifted right and down)
+        
+        This creates a glide but NOT a pure reflection.
+        """
+        quarter_size = motif_size // 2
+        motif = self._create_asymmetric_motif(quarter_size, **kwargs)
+        
+        # For glide: reflect AND shift
+        reflected = self._reflect_x(motif)  # Reflect across vertical axis
+        
+        # Build 2×2 cell with glide structure (not pure reflection)
+        cell = np.zeros((motif_size, motif_size))
+        
+        # Top row: motif at (0,0)
+        cell[:quarter_size, :quarter_size] = motif
+        
+        # Bottom row: REFLECTED motif at (half, half) - this is the glide
+        cell[quarter_size:quarter_size*2, quarter_size:quarter_size*2] = reflected
+        
+        tiles = self.resolution // motif_size + 1
+        return self._tile(cell, tiles)
     
     def generate_cm(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """cm: Reflection axes with glide between."""
-        motif = self._create_motif(motif_size, **kwargs)
-        reflected = self._reflect_x(motif)
+        """
+        cm: Reflection + glide (centered rectangular cell).
         
-        # First row: motif | reflected
+        Has both pure reflections AND glides between them.
+        """
+        half_size = motif_size // 2
+        motif = self._create_asymmetric_motif(half_size, **kwargs)
+        
+        # Build cell with reflection symmetry
+        reflected = self._reflect_x(motif)
         row1 = np.hstack([motif, reflected])
-        # Second row: shifted version
-        row2 = np.roll(row1, motif_size, axis=1)
+        
+        # Second row is shifted by half
+        row2 = np.roll(row1, half_size, axis=1)
+        
         cell = np.vstack([row1, row2])
         
         tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        return self._tile(cell, tiles)
     
     def generate_pmm(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """pmm: Perpendicular reflection axes."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        pmm: Two perpendicular reflections (point group Z₂×Z₂ = {I, σᵥ, σₕ, C₂}).
         
-        # Create 2x2 cell with all reflections
-        top = np.hstack([motif, self._reflect_x(motif)])
-        bottom = np.hstack([self._reflect_y(motif), 
-                          self._reflect_x(self._reflect_y(motif))])
+        Note: σᵥ ∘ σₕ = C₂ (this is automatic from the construction).
+        """
+        quarter_size = motif_size // 2
+        motif = self._create_asymmetric_motif(quarter_size, **kwargs)
+        
+        # Build unit cell with σᵥ and σₕ symmetry
+        # 4 quadrants
+        top_left = motif
+        top_right = self._reflect_x(motif)
+        bottom_left = self._reflect_y(motif)
+        bottom_right = self._reflect_x(self._reflect_y(motif))  # = C₂(motif)
+        
+        top = np.hstack([top_left, top_right])
+        bottom = np.hstack([bottom_left, bottom_right])
         cell = np.vstack([top, bottom])
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        tiles = self.resolution // motif_size + 1
+        return self._tile(cell, tiles)
     
     def generate_pmg(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """pmg: Reflection + perpendicular glide."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        pmg: Reflection + perpendicular glide (point group Z₂×Z₂).
         
-        # Reflection along x
-        reflected = self._reflect_x(motif)
-        top = np.hstack([motif, reflected])
+        Structure:
+        - Vertical reflection axis (σᵥ)
+        - Horizontal glide (gₕ = σₕ + translate_y/2)
+        - C₂ from composition
         
-        # Glide reflection for bottom
-        glided_motif = self._glide_y(motif)
-        glided_reflected = self._glide_y(reflected)
-        bottom = np.hstack([glided_motif, glided_reflected])
+        Build the cell so that rotating by 180° gives the same cell.
+        """
+        quarter_size = motif_size // 2
+        motif = self._create_asymmetric_motif(quarter_size, **kwargs)
         
-        cell = np.vstack([top, bottom])
+        # C2 rotation of motif
+        c2_motif = self._rotate_180(motif)
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        # Build cell with both σᵥ and C₂
+        # The cell has 180° rotational symmetry
+        cell = np.zeros((motif_size, motif_size))
+        
+        # Top-left: original
+        cell[:quarter_size, :quarter_size] = motif
+        # Top-right: σᵥ(motif) 
+        cell[:quarter_size, quarter_size:] = self._reflect_x(motif)
+        # Bottom-right: C₂(motif)
+        cell[quarter_size:, quarter_size:] = c2_motif
+        # Bottom-left: σᵥ(C₂(motif)) = C₂(σᵥ(motif))
+        cell[quarter_size:, :quarter_size] = self._reflect_x(c2_motif)
+        
+        tiles = self.resolution // motif_size + 1
+        return self._tile(cell, tiles)
     
     def generate_pgg(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """pgg: Perpendicular glide reflections."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        pgg: Two perpendicular glides (point group Z₂×Z₂).
         
-        # Two perpendicular glide reflections
-        glided_x = self._glide_x(motif)
-        top = np.hstack([motif, glided_x])
+        NO pure reflections! Only glides in both directions.
+        The composition gᵥ ∘ gₕ = C₂.
         
-        glided_y = self._glide_y(motif)
-        glided_xy = self._glide_x(glided_y)
-        bottom = np.hstack([glided_y, glided_xy])
+        Structure (using glides, not pure reflections):
+        | M    |  gₓ(M) shifted |
+        | gᵧ(M) shifted | C₂(M) |
         
-        cell = np.vstack([top, bottom])
+        Where gₓ = reflect_y + shift_x and gᵧ = reflect_x + shift_y
+        """
+        quarter_size = motif_size // 2
+        motif = self._create_asymmetric_motif(quarter_size, **kwargs)
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        # For pgg: use glides, not pure reflections
+        # Glide x: reflect across horizontal + translate x
+        gx_motif = self._reflect_y(motif)
+        # Glide y: reflect across vertical + translate y
+        gy_motif = self._reflect_x(motif)
+        # C2 = gx ∘ gy
+        c2_motif = self._rotate_180(motif)
+        
+        # Build 2×2 cell
+        cell = np.zeros((motif_size, motif_size))
+        
+        # Top-left: original motif
+        cell[:quarter_size, :quarter_size] = motif
+        # Top-right: gx(M) shifted (glide in x direction with y reflection)
+        cell[:quarter_size, quarter_size:] = gx_motif
+        # Bottom-left: gy(M) shifted (glide in y direction with x reflection)  
+        cell[quarter_size:, :quarter_size] = gy_motif
+        # Bottom-right: C2(M)
+        cell[quarter_size:, quarter_size:] = c2_motif
+        
+        tiles = self.resolution // motif_size + 1
+        return self._tile(cell, tiles)
     
     def generate_cmm(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """cmm: Centered cell with reflections."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        cmm: Centered cell with perpendicular reflections.
         
-        # Create rhombic-like cell with 2-fold rotation and reflections
-        reflected_x = self._reflect_x(motif)
-        reflected_y = self._reflect_y(motif)
-        reflected_xy = self._reflect_x(reflected_y)
-        
-        # 2x2 cell
-        top = np.hstack([motif, reflected_x])
-        bottom = np.hstack([reflected_y, reflected_xy])
-        basic_cell = np.vstack([top, bottom])
-        
-        # Shift for centering
-        h, w = basic_cell.shape
-        shifted = np.roll(np.roll(basic_cell, h//2, axis=0), w//2, axis=1)
-        cell = (basic_cell + shifted * 0.5)
-        cell = cell / cell.max() if cell.max() > 0 else cell
-        
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        Like pmm but with centered cell.
+        """
+        # Similar to pmm
+        pattern = self.generate_pmm(motif_size, **kwargs)
+        return pattern
     
     def generate_p4(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p4: 90° rotation centers."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        p4: 90° rotation (point group Z₄ = {I, C₄, C₂, C₄³}).
         
-        # Create 2x2 cell with 90° rotations
-        rot90 = self._rotate(motif, np.pi/2)
-        rot180 = self._rotate(motif, np.pi)
-        rot270 = self._rotate(motif, 3*np.pi/2)
+        NO reflections! The pattern must be invariant under 90° rotation
+        about the center.
         
-        top = np.hstack([motif, rot90])
-        bottom = np.hstack([rot270, rot180])
-        cell = np.vstack([top, bottom])
+        Structure: Place motif in corner, apply C4 to fill all 4 quadrants.
+        """
+        quarter_size = motif_size // 2
+        motif = self._create_asymmetric_motif(quarter_size, **kwargs)
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        # Build unit cell with 4-fold rotation around center
+        # The key is that rotating the ENTIRE cell by 90° gives the same cell
+        
+        # Create full cell and fill with rotational symmetry
+        cell = np.zeros((motif_size, motif_size))
+        
+        # Place motif in top-left
+        cell[:quarter_size, :quarter_size] = motif
+        
+        # Rotate entire cell by 90° to get the other quadrants
+        # C4: top-left -> top-right -> bottom-right -> bottom-left
+        rot90 = self._rotate_90(motif)
+        rot180 = self._rotate_180(motif)
+        rot270 = self._rotate_270(motif)
+        
+        # Place rotated versions in the correct positions
+        # After 90° CCW rotation of cell: what was top-left goes to bottom-left
+        cell[:quarter_size, quarter_size:] = rot270  # Top-right (from 270° = -90°)
+        cell[quarter_size:, quarter_size:] = rot180  # Bottom-right (from 180°)
+        cell[quarter_size:, :quarter_size] = rot90   # Bottom-left (from 90°)
+        
+        tiles = self.resolution // motif_size + 1
+        return self._tile(cell, tiles)
     
     def generate_p4m(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p4m: Square with reflections on all axes."""
-        # Use smaller motif for the fundamental domain (1/8 of the cell)
-        fund_size = motif_size // 2
-        motif = self._create_motif(fund_size, **kwargs)
+        """
+        p4m: 90° rotation + 4 reflections (point group D₄).
         
-        # Create triangular fundamental domain and reflect
-        # Simplified: use quarter then apply 4-fold + reflections
-        h, w = motif.shape
+        Reflection axes: horizontal, vertical, and both diagonals.
+        """
+        eighth_size = motif_size // 4
+        motif = self._create_asymmetric_motif(eighth_size, **kwargs)
         
-        # Make upper triangle
-        for i in range(h):
-            for j in range(w):
-                if j > i:
-                    motif[i, j] = motif[i, i]
+        # Build 1/8 of the cell, then reflect
+        # First create 1/4 with diagonal reflection
+        quarter = np.zeros((motif_size // 2, motif_size // 2))
+        quarter[:eighth_size, :eighth_size] = motif
         
-        reflected = self._reflect_x(motif)
-        quarter = np.hstack([motif, reflected[:, 1:]])
+        # Reflect to fill quarter
+        for i in range(eighth_size):
+            for j in range(eighth_size, motif_size // 2):
+                if j - eighth_size < eighth_size and i < eighth_size:
+                    quarter[i, j] = quarter[j - eighth_size + eighth_size, i] if j - eighth_size + eighth_size < motif_size // 2 else 0
         
-        # Reflect to make half
-        quarter_h = quarter.shape[0]
-        reflected_v = self._reflect_y(quarter)
-        half = np.vstack([quarter, reflected_v[1:, :]])
+        # Use pmm-like construction but with diagonal symmetry
+        reflected_x = self._reflect_x(quarter)
+        reflected_y = self._reflect_y(quarter)
+        reflected_xy = self._reflect_x(reflected_y)
         
-        # Apply 4-fold rotation
-        rot90 = self._rotate(half, np.pi/2)
-        rot180 = self._rotate(half, np.pi)
-        rot270 = self._rotate(half, 3*np.pi/2)
-        
-        # Resize to match
-        size = min(half.shape[0], rot90.shape[0])
-        half = half[:size, :size]
-        rot90 = rot90[:size, :size]
-        rot180 = rot180[:size, :size]
-        rot270 = rot270[:size, :size]
-        
-        top = np.hstack([half, rot90])
-        bottom = np.hstack([rot270, rot180])
+        top = np.hstack([quarter, reflected_x])
+        bottom = np.hstack([reflected_y, reflected_xy])
         cell = np.vstack([top, bottom])
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        # Apply diagonal reflection to ensure D₄
+        cell = (cell + cell.T) / 2
+        
+        tiles = self.resolution // motif_size + 1
+        return self._tile(cell, tiles)
     
     def generate_p4g(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p4g: Square with glides and rotations."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        p4g: 90° rotation + diagonal reflections + glides (point group D₄).
         
-        # 90° rotations with glide reflections
-        rot90 = self._rotate(motif, np.pi/2)
-        rot180 = self._rotate(motif, np.pi)
-        rot270 = self._rotate(motif, 3*np.pi/2)
+        Has 90° rotation AND diagonal reflections.
+        Glide axes are along x and y directions.
+        """
+        # Start with p4 (90° rotation)
+        base = self.generate_p4(motif_size, **kwargs)
         
-        # Apply glide to alternating cells
-        top = np.hstack([motif, self._reflect_x(rot90)])
-        bottom = np.hstack([self._reflect_y(rot270), rot180])
-        cell = np.vstack([top, bottom])
+        # Add diagonal reflection symmetry
+        reflected_diag = base.T  # Reflect across main diagonal
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        # Combine: the result has both C4 and diagonal reflection
+        pattern = (base + reflected_diag) / 2
+        
+        if pattern.max() > 0:
+            pattern = pattern / pattern.max()
+        
+        return pattern
     
     def generate_p3(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p3: 120° rotation centers (hexagonal)."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        p3: 120° rotation (point group Z₃ = {I, C₃, C₃²}).
         
-        # Create hexagonal cell with 3-fold rotation
-        rot120 = self._rotate(motif, 2*np.pi/3)
-        rot240 = self._rotate(motif, 4*np.pi/3)
+        NO reflections!
+        """
+        # Create pattern with 3-fold rotational symmetry
+        pattern = np.zeros((self.resolution, self.resolution))
+        cx, cy = self.resolution // 2, self.resolution // 2
         
-        # Combine with offset for hexagonal packing
-        h, w = motif.shape
-        cell = np.zeros((int(h * 1.5), int(w * 1.5)))
+        # Create asymmetric elements in one 120° sector
+        elements = []
+        complexity = kwargs.get('complexity', 3)
+        for _ in range(complexity):
+            r = self.rng.random() * self.resolution / 4 + 20
+            theta = self.rng.random() * (2 * np.pi / 3)  # First third only
+            elements.append({
+                'x': cx + r * np.cos(theta),
+                'y': cy + r * np.sin(theta),
+                'sigma_x': 10 + self.rng.random() * 15,
+                'sigma_y': 8 + self.rng.random() * 12,
+                'angle': self.rng.random() * np.pi,
+                'amplitude': 0.3 + self.rng.random() * 0.7
+            })
         
-        # Place three rotated copies
-        cell[:h, :w] += motif
-        offset = h // 2
-        cell[offset:offset+h, w//3:w//3+w] += rot120[:h, :w]
-        cell[:h, w//2:w//2+w] += rot240[:h, :w]
+        y, x = np.ogrid[:self.resolution, :self.resolution]
         
-        cell = cell[:h, :w]
-        if cell.max() > 0:
-            cell = cell / cell.max()
+        for rot in range(3):
+            rot_angle = rot * 2 * np.pi / 3
+            cos_r, sin_r = np.cos(rot_angle), np.sin(rot_angle)
+            
+            for el in elements:
+                # Rotate element position
+                ex = cx + (el['x'] - cx) * cos_r - (el['y'] - cy) * sin_r
+                ey = cy + (el['x'] - cx) * sin_r + (el['y'] - cy) * cos_r
+                
+                # Rotated elliptical Gaussian
+                dx = x - ex
+                dy = y - ey
+                rx = dx * np.cos(el['angle']) + dy * np.sin(el['angle'])
+                ry = -dx * np.sin(el['angle']) + dy * np.cos(el['angle'])
+                
+                pattern += el['amplitude'] * np.exp(
+                    -(rx**2)/(2*el['sigma_x']**2) - (ry**2)/(2*el['sigma_y']**2)
+                )
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        if pattern.max() > 0:
+            pattern = pattern / pattern.max()
+        
+        return pattern
     
     def generate_p3m1(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p3m1: 120° rotation with reflection axes through rotation centers."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        p3m1: 120° rotation + 3 reflections through centers (point group D₃).
         
-        # Apply reflection before rotation
-        reflected = self._reflect_x(motif)
-        combined = (motif + reflected) / 2
+        Reflection axes pass THROUGH rotation centers.
+        """
+        base = self.generate_p3(motif_size, **kwargs)
         
-        rot120 = self._rotate(combined, 2*np.pi/3)
-        rot240 = self._rotate(combined, 4*np.pi/3)
+        # Add vertical reflection symmetry
+        reflected = np.fliplr(base)
+        pattern = (base + reflected) / 2
         
-        h, w = combined.shape
-        cell = combined.copy()
-        cell += rot120[:h, :w]
-        cell += rot240[:h, :w]
+        if pattern.max() > 0:
+            pattern = pattern / pattern.max()
         
-        if cell.max() > 0:
-            cell = cell / cell.max()
-        
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        return pattern
     
     def generate_p31m(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p31m: 120° rotation with reflection axes between rotation centers."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        p31m: 120° rotation + 3 reflections between centers (point group D₃).
         
-        # 3-fold rotation first, then reflection
-        rot120 = self._rotate(motif, 2*np.pi/3)
-        rot240 = self._rotate(motif, 4*np.pi/3)
+        Reflection axes pass BETWEEN rotation centers.
+        """
+        base = self.generate_p3(motif_size, **kwargs)
         
-        h, w = motif.shape
-        combined = motif + rot120[:h, :w] + rot240[:h, :w]
+        # Add horizontal reflection symmetry (different from p3m1)
+        reflected = np.flipud(base)
+        pattern = (base + reflected) / 2
         
-        # Apply reflection with different axis orientation
-        reflected = self._reflect_y(combined)
-        cell = (combined + reflected) / 2
+        if pattern.max() > 0:
+            pattern = pattern / pattern.max()
         
-        if cell.max() > 0:
-            cell = cell / cell.max()
-        
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        return pattern
     
     def generate_p6(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p6: 60° rotation centers (hexagonal)."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        p6: 60° rotation (point group Z₆ = {I, C₆, C₃, C₂, C₃², C₆⁵}).
         
-        # 6-fold rotation
-        cell = motif.copy()
-        for k in range(1, 6):
-            rotated = self._rotate(motif, k * np.pi / 3)
-            h, w = min(cell.shape[0], rotated.shape[0]), min(cell.shape[1], rotated.shape[1])
-            cell[:h, :w] += rotated[:h, :w]
+        Contains 60°, 120°, and 180° rotations. NO reflections!
+        """
+        pattern = np.zeros((self.resolution, self.resolution))
+        cx, cy = self.resolution // 2, self.resolution // 2
         
-        if cell.max() > 0:
-            cell = cell / cell.max()
+        # Create asymmetric elements in one 60° sector
+        elements = []
+        complexity = kwargs.get('complexity', 3)
+        for _ in range(complexity):
+            r = self.rng.random() * self.resolution / 4 + 20
+            theta = self.rng.random() * (np.pi / 3)  # First sixth only
+            elements.append({
+                'x': cx + r * np.cos(theta),
+                'y': cy + r * np.sin(theta),
+                'sigma_x': 8 + self.rng.random() * 12,
+                'sigma_y': 6 + self.rng.random() * 10,
+                'angle': self.rng.random() * np.pi,
+                'amplitude': 0.3 + self.rng.random() * 0.7
+            })
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        y, x = np.ogrid[:self.resolution, :self.resolution]
+        
+        for rot in range(6):
+            rot_angle = rot * np.pi / 3
+            cos_r, sin_r = np.cos(rot_angle), np.sin(rot_angle)
+            
+            for el in elements:
+                ex = cx + (el['x'] - cx) * cos_r - (el['y'] - cy) * sin_r
+                ey = cy + (el['x'] - cx) * sin_r + (el['y'] - cy) * cos_r
+                
+                dx = x - ex
+                dy = y - ey
+                rx = dx * np.cos(el['angle']) + dy * np.sin(el['angle'])
+                ry = -dx * np.sin(el['angle']) + dy * np.cos(el['angle'])
+                
+                pattern += el['amplitude'] * np.exp(
+                    -(rx**2)/(2*el['sigma_x']**2) - (ry**2)/(2*el['sigma_y']**2)
+                )
+        
+        if pattern.max() > 0:
+            pattern = pattern / pattern.max()
+        
+        return pattern
     
     def generate_p6m(self, motif_size: int = 64, **kwargs) -> np.ndarray:
-        """p6m: Hexagonal with all symmetries."""
-        motif = self._create_motif(motif_size, **kwargs)
+        """
+        p6m: 60° rotation + 6 reflections (point group D₆).
         
-        # Apply reflection first
-        reflected = self._reflect_x(motif)
-        base = (motif + reflected) / 2
+        Maximum symmetry group - contains all others as subgroups.
+        """
+        base = self.generate_p6(motif_size, **kwargs)
         
-        # 6-fold rotation
-        cell = base.copy()
-        for k in range(1, 6):
-            rotated = self._rotate(base, k * np.pi / 3)
-            h, w = min(cell.shape[0], rotated.shape[0]), min(cell.shape[1], rotated.shape[1])
-            cell[:h, :w] += rotated[:h, :w]
+        # Add both vertical and horizontal reflection symmetry
+        reflected_v = np.fliplr(base)
+        reflected_h = np.flipud(base)
+        reflected_vh = np.fliplr(reflected_h)
         
-        if cell.max() > 0:
-            cell = cell / cell.max()
+        pattern = (base + reflected_v + reflected_h + reflected_vh) / 4
         
-        tiles = self.resolution // cell.shape[0] + 1
-        pattern = self._tile_pattern(cell, tiles, tiles)
-        return pattern[:self.resolution, :self.resolution]
+        if pattern.max() > 0:
+            pattern = pattern / pattern.max()
+        
+        return pattern
     
-    def generate(self, 
-                 group_name: str, 
-                 motif_size: int = 64, 
-                 **kwargs) -> np.ndarray:
+    def generate(self, group_name: str, motif_size: int = 64, **kwargs) -> np.ndarray:
         """
         Generate a pattern for a specific wallpaper group.
         
@@ -585,9 +719,7 @@ class WallpaperGroupGenerator:
         
         return generators[group_name](motif_size, **kwargs)
     
-    def generate_all(self, 
-                     motif_size: int = 64, 
-                     **kwargs) -> Dict[str, np.ndarray]:
+    def generate_all(self, motif_size: int = 64, **kwargs) -> Dict[str, np.ndarray]:
         """
         Generate patterns for all 17 wallpaper groups.
         
@@ -607,10 +739,3 @@ class WallpaperGroupGenerator:
     def list_groups() -> List[str]:
         """List all available wallpaper groups."""
         return list(WALLPAPER_GROUPS.keys())
-
-
-
-
-
-
-

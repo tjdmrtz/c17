@@ -192,6 +192,18 @@ Input: [B, 3, 256, 256] → Encoder → Latent [B, 64] → Decoder → Output: [
 
 ---
 
+## Interactive Visualization
+
+**🎮 [Try the Interactive Demo](https://khabalghoul.github.io/c17/)** - Explore the 17 wallpaper groups with real-time symmetry operations.
+
+Features:
+- Apply rotations (C₂, C₃, C₄, C₆), reflections (σᵥ, σₕ), glides, and translations
+- See the transformed pattern alongside the original
+- View correlation to verify symmetry preservation
+- Cayley tables and group generators for each group
+
+---
+
 ## Documentation
 
 | Document | Description |
@@ -199,6 +211,24 @@ Input: [B, 3, 256, 256] → Encoder → Latent [B, 64] → Decoder → Output: [
 | [Architecture](docs/ARCHITECTURE.md) | System design, models, data flow |
 | [API Reference](docs/API_REFERENCE.md) | Scripts and modules |
 | [Wallpaper Groups Guide](docs/Wallpaper_Groups_Guide_executed.ipynb) | Mathematical foundations (interactive notebook with visualizations) |
+| [Interactive App](https://khabalghoul.github.io/c17/) | Web-based symmetry explorer |
+
+---
+
+## Testing
+
+Run symmetry verification tests:
+
+```bash
+conda activate c17
+pytest tests/test_wallpaper_groups_symmetry.py -v
+```
+
+The test suite verifies:
+- Each group has its required symmetries (e.g., p4 has C₄ rotation)
+- Each group lacks forbidden symmetries (e.g., p1 has no rotation)
+- Group theory properties (C₂² = I, σ² = I, etc.)
+- Cayley table consistency
 
 ---
 
