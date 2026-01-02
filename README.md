@@ -214,4 +214,4 @@ Input: [B, 3, 256, 256] → Encoder → Latent [B, 64] → Decoder → Output: [
 
 MIT License
 
-¨no se trata de la simetrías que ves, se trata de las que no ves" 
+"no se trata de la simetrías que ves, se trata de las que no ves"  Dr. Giribet
