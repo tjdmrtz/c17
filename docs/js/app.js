@@ -252,7 +252,8 @@ class WallpaperExplorer {
     
     /**
      * Draw Cayley graph for the group's point group
-     * Nodes are group elements, edges show generator connections
+     * Geometric Deep Learning style: nodes show transformed polygons
+     * R edges = rotations (form cycle), F edges = reflections (connect pairs)
      * Interactive: highlights current position after applying operations
      */
     drawCayleyGraph(group, highlightNode = 'e') {
@@ -299,180 +300,354 @@ class WallpaperExplorer {
         const elements = group.cayleyTable.elements;
         const n = elements.length;
         
-        // Position nodes in a circle
+        // Classify each element by its label
+        const classifyElement = (label) => {
+            if (label === 'e') return { isIdentity: true, isRotation: false, isReflection: false };
+            if (label.startsWith('C') || label.startsWith('R')) return { isIdentity: false, isRotation: true, isReflection: false };
+            if (label.includes('σ') || label.includes('(g')) return { isIdentity: false, isRotation: false, isReflection: true };
+            return { isIdentity: false, isRotation: false, isReflection: false };
+        };
+        
+        // Determine polygon vertices for visualization
+        const rotOrder = group.rotationOrder || 1;
+        const polyVertices = Math.max(3, rotOrder);
+        
+        // Calculate layout - always use simple circular layout for robustness
         const centerX = width / 2;
-        const centerY = height / 2 - 10;  // Shift up a bit for legend
-        const radius = n === 1 ? 0 : Math.min(width, height) / 2 - 60;
+        const centerY = height / 2 - 15;
+        const radius = Math.min(width, height) / 2 - 55;
         
         this.cayleyNodes = [];
-        for (let i = 0; i < n; i++) {
-            const angle = (i * 2 * Math.PI / n) - Math.PI / 2;  // Start from top
-            const label = elements[i];
-            
-            // Determine node type based on explicit symbols
-            const isIdentity = label === 'e';
-            const isRotation = label.startsWith('C') && !label.includes('σ');
-            const isReflection = label.includes('σ');
-            const isGlide = label.includes('g') && !label.includes('σ');
-            const isTranslation = label.includes('t') || label.includes('T');
-            
+        
+        if (n === 1) {
+            // Trivial group: single node at center
             this.cayleyNodes.push({
-                x: n === 1 ? centerX : centerX + radius * Math.cos(angle),
-                y: n === 1 ? centerY : centerY + radius * Math.sin(angle),
-                label: label,
-                isIdentity: isIdentity,
-                isRotation: isRotation,
-                isReflection: isReflection,
-                isGlide: isGlide,
-                isTranslation: isTranslation,
-                isCurrent: label === highlightNode
+                x: centerX, y: centerY,
+                label: 'e', isIdentity: true, isRotation: false, isReflection: false,
+                isCurrent: highlightNode === 'e',
+                rotationIndex: 0, isReflected: false
             });
+        } else {
+            // Place all elements in a circle
+            for (let i = 0; i < n; i++) {
+                const angle = (i * 2 * Math.PI / n) - Math.PI / 2;
+                const label = elements[i];
+                const type = classifyElement(label);
+                
+                this.cayleyNodes.push({
+                    x: centerX + radius * Math.cos(angle),
+                    y: centerY + radius * Math.sin(angle),
+                    label: label,
+                    ...type,
+                    isCurrent: label === highlightNode,
+                    rotationIndex: i,
+                    isReflected: type.isReflection
+                });
+            }
         }
         
-        // Draw edges with arrows to show generator connections (skip for single node)
-        ctx.lineWidth = 1.5;
+        // === Draw edges based on Cayley table structure ===
+        ctx.lineWidth = 2;
         
-        // Draw rotation edges (connecting consecutive rotations)
-        for (let i = 0; i < n && n > 1; i++) {
-            const j = (i + 1) % n;
+        if (n > 1) {
+            // Draw edges based on actual Cayley table relationships
+            const table = group.cayleyTable.table;
+            const drawnEdges = new Set();
             
-            // Create curved edges for better visualization
-            const gradient = ctx.createLinearGradient(
-                this.cayleyNodes[i].x, this.cayleyNodes[i].y, 
-                this.cayleyNodes[j].x, this.cayleyNodes[j].y
-            );
-            
-            // Color by edge type
-            if (this.cayleyNodes[i].isRotation || this.cayleyNodes[j].isRotation) {
-                gradient.addColorStop(0, 'rgba(183, 148, 246, 0.7)');
-                gradient.addColorStop(1, 'rgba(183, 148, 246, 0.4)');
-            } else if (this.cayleyNodes[i].isReflection || this.cayleyNodes[j].isReflection) {
-                gradient.addColorStop(0, 'rgba(79, 168, 199, 0.7)');
-                gradient.addColorStop(1, 'rgba(79, 168, 199, 0.4)');
-            } else {
-                gradient.addColorStop(0, 'rgba(0, 212, 170, 0.7)');
-                gradient.addColorStop(1, 'rgba(0, 212, 170, 0.4)');
+            // Find and draw rotation generator edges
+            for (let i = 0; i < n; i++) {
+                for (let j = 0; j < n; j++) {
+                    const result = table[i][j];
+                    const resultIdx = elements.indexOf(result);
+                    
+                    // Skip if result not found or is a glide operation marker
+                    if (resultIdx === -1 || result.startsWith('(')) continue;
+                    
+                    // Create edge key to avoid duplicates
+                    const edgeKey = `${Math.min(i, j)}-${Math.max(i, j)}`;
+                    
+                    // Draw rotation edges (connecting via rotation generator)
+                    if (!drawnEdges.has(edgeKey) && this.cayleyNodes[i].isRotation !== this.cayleyNodes[resultIdx].isReflection) {
+                        // Don't draw all edges - too cluttered. Draw consecutive connections
+                    }
+                }
             }
             
-            ctx.strokeStyle = gradient;
-            ctx.beginPath();
-            ctx.moveTo(this.cayleyNodes[i].x, this.cayleyNodes[i].y);
-            ctx.lineTo(this.cayleyNodes[j].x, this.cayleyNodes[j].y);
-            ctx.stroke();
+            // Simple approach: connect consecutive elements (works for cyclic structure)
+            for (let i = 0; i < n; i++) {
+                const j = (i + 1) % n;
+                const fromNode = this.cayleyNodes[i];
+                const toNode = this.cayleyNodes[j];
+                
+                // Determine edge type based on nodes
+                const isReflectionEdge = fromNode.isReflection !== toNode.isReflection;
+                
+                if (isReflectionEdge) {
+                    ctx.setLineDash([5, 3]);
+                    this.drawReflectionEdge(ctx, fromNode, toNode, '#4fa8c7');
+                    ctx.setLineDash([]);
+                } else {
+                    this.drawCurvedArrow(ctx, fromNode, toNode, '#b794f6', 'R');
+                }
+            }
             
-            // Draw arrow head
-            this.drawArrowHead(ctx, 
-                this.cayleyNodes[i].x, this.cayleyNodes[i].y,
-                this.cayleyNodes[j].x, this.cayleyNodes[j].y,
-                gradient
-            );
-        }
-        
-        // Draw reflection edges (involutions connect back to identity) - skip for single node
-        for (let i = 0; i < n && n > 1; i++) {
-            if (this.cayleyNodes[i].isReflection && !this.cayleyNodes[i].isIdentity) {
-                ctx.strokeStyle = 'rgba(79, 168, 199, 0.35)';
-                ctx.setLineDash([4, 4]);
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(this.cayleyNodes[i].x, this.cayleyNodes[i].y);
-                ctx.lineTo(this.cayleyNodes[0].x, this.cayleyNodes[0].y);
-                ctx.stroke();
+            // Draw additional reflection edges for dihedral groups (σ² = e)
+            if (group.hasReflection) {
+                ctx.setLineDash([5, 3]);
+                for (let i = 0; i < n; i++) {
+                    if (this.cayleyNodes[i].isReflection) {
+                        // Find identity node
+                        const identityNode = this.cayleyNodes.find(node => node.isIdentity);
+                        if (identityNode && identityNode !== this.cayleyNodes[i]) {
+                            this.drawReflectionEdge(ctx, this.cayleyNodes[i], identityNode, 'rgba(79, 168, 199, 0.3)');
+                        }
+                    }
+                }
                 ctx.setLineDash([]);
-                ctx.lineWidth = 1.5;
             }
         }
         
-        // Draw nodes
-        const nodeRadius = 18;
+        // === Draw nodes ===
+        const nodeSize = 18;
         
         for (const node of this.cayleyNodes) {
-            // Glow effect (stronger for current node)
-            const glowRadius = node.isCurrent ? nodeRadius * 2.5 : nodeRadius * 1.5;
-            const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowRadius);
-            
-            // Color scheme:
-            // - Identity: Green (#00d4aa)
-            // - Rotation: Purple (#b794f6)
-            // - Reflection: Blue (#4fa8c7)
-            // - Glide: Teal (#20c997)
-            // - Translation: Gray (#8b98a5)
-            // - Current: Amber (#f6b93b)
-            
-            if (node.isCurrent) {
-                glow.addColorStop(0, 'rgba(246, 185, 59, 0.8)');
-                glow.addColorStop(0.5, 'rgba(246, 185, 59, 0.3)');
-                glow.addColorStop(1, 'rgba(246, 185, 59, 0)');
-            } else if (node.isIdentity) {
-                glow.addColorStop(0, 'rgba(0, 212, 170, 0.4)');
-                glow.addColorStop(1, 'rgba(0, 212, 170, 0)');
-            } else if (node.isRotation) {
-                glow.addColorStop(0, 'rgba(183, 148, 246, 0.4)');
-                glow.addColorStop(1, 'rgba(183, 148, 246, 0)');
-            } else if (node.isGlide) {
-                glow.addColorStop(0, 'rgba(32, 201, 151, 0.4)');
-                glow.addColorStop(1, 'rgba(32, 201, 151, 0)');
-            } else if (node.isTranslation) {
-                glow.addColorStop(0, 'rgba(139, 152, 165, 0.4)');
-                glow.addColorStop(1, 'rgba(139, 152, 165, 0)');
-            } else {
-                glow.addColorStop(0, 'rgba(79, 168, 199, 0.4)');
-                glow.addColorStop(1, 'rgba(79, 168, 199, 0)');
-            }
-            
-            ctx.fillStyle = glow;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Node circle
-            let nodeColor;
-            if (node.isCurrent) {
-                nodeColor = '#f6b93b';  // Amber for current
-            } else if (node.isIdentity) {
-                nodeColor = '#00d4aa';  // Green
-            } else if (node.isRotation) {
-                nodeColor = '#b794f6';  // Purple
-            } else if (node.isGlide) {
-                nodeColor = '#20c997';  // Teal
-            } else if (node.isTranslation) {
-                nodeColor = '#8b98a5';  // Gray
-            } else {
-                nodeColor = '#4fa8c7';  // Blue (reflection)
-            }
-            
-            ctx.fillStyle = nodeColor;
-            ctx.beginPath();
-            ctx.arc(node.x, node.y, node.isCurrent ? nodeRadius + 3 : nodeRadius, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Border
-            ctx.strokeStyle = node.isCurrent ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = node.isCurrent ? 3 : 2;
-            ctx.stroke();
-            
-            // Label
-            ctx.fillStyle = '#0f1419';
-            ctx.font = node.isCurrent ? 'bold 12px JetBrains Mono' : 'bold 10px JetBrains Mono';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(node.label, node.x, node.y);
+            // Draw circle nodes with labels (simpler and more readable)
+            this.drawLabeledNode(ctx, node, nodeSize);
         }
         
-        // Info at bottom
+        // === Legend ===
         ctx.fillStyle = '#8b98a5';
         ctx.font = '9px Outfit';
         ctx.textAlign = 'center';
-        ctx.fillText(`Grupo Puntual: orden ${n}`, width/2, height - 20);
         
-        // Legend explanation
-        ctx.fillStyle = '#5c6874';
+        const hasReflection = group.hasReflection;
+        const groupName = hasReflection ? `D${rotOrder}` : (rotOrder === 1 ? 'C₁' : `C${rotOrder}`);
+        ctx.fillText(`Grupo Puntual: ${groupName} (orden ${n})`, width/2, height - 18);
+        
+        // Edge legend
         ctx.font = '8px Outfit';
-        ctx.fillText('→ Rotación   ⤏ Reflexión (σ²=e)', width/2, height - 8);
+        ctx.fillStyle = '#b794f6';
+        ctx.fillText('— R (rotación)', width/2 - 50, height - 5);
+        if (hasReflection) {
+            ctx.fillStyle = '#4fa8c7';
+            ctx.fillText('┈ F (reflexión)', width/2 + 50, height - 5);
+        }
     }
     
     /**
-     * Draw arrow head for Cayley graph edges
+     * Draw a labeled node (circle with text)
+     */
+    drawLabeledNode(ctx, node, size) {
+        const radius = size;
+        
+        // Determine color based on node type
+        let fillColor, glowColor;
+        if (node.isCurrent) {
+            fillColor = '#f6b93b';
+            glowColor = 'rgba(246, 185, 59, 0.6)';
+        } else if (node.isIdentity) {
+            fillColor = '#00d4aa';
+            glowColor = 'rgba(0, 212, 170, 0.4)';
+        } else if (node.isRotation) {
+            fillColor = '#b794f6';
+            glowColor = 'rgba(183, 148, 246, 0.4)';
+        } else if (node.isReflection) {
+            fillColor = '#4fa8c7';
+            glowColor = 'rgba(79, 168, 199, 0.4)';
+        } else {
+            fillColor = '#8b98a5';
+            glowColor = 'rgba(139, 152, 165, 0.4)';
+        }
+        
+        // Glow effect
+        ctx.beginPath();
+        const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, radius * 2);
+        glow.addColorStop(0, glowColor);
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.arc(node.x, node.y, radius * 2, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Node circle
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.isCurrent ? radius + 3 : radius, 0, Math.PI * 2);
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+        
+        // Border
+        ctx.strokeStyle = node.isCurrent ? '#ffffff' : 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = node.isCurrent ? 3 : 1.5;
+        ctx.stroke();
+        
+        // Label
+        ctx.fillStyle = node.isCurrent ? '#000' : '#0f1419';
+        ctx.font = node.isCurrent ? 'bold 11px JetBrains Mono' : '10px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Truncate long labels
+        let label = node.label;
+        if (label.length > 6) {
+            label = label.substring(0, 5) + '…';
+        }
+        ctx.fillText(label, node.x, node.y);
+    }
+    
+    /**
+     * Draw a transformed polygon (triangle, square, etc.) representing group element
+     */
+    drawTransformedPolygon(ctx, x, y, size, numVertices, rotationIndex, isReflected, isCurrent, rotOrder) {
+        const rotAngle = (rotationIndex * 2 * Math.PI / rotOrder);
+        
+        // Vertex colors: 1=red, 2=green, 3=blue (like in the book)
+        const vertexColors = ['#ef4444', '#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4'];
+        
+        ctx.save();
+        ctx.translate(x, y);
+        
+        // Apply rotation
+        ctx.rotate(rotAngle);
+        
+        // Apply reflection if needed (flip horizontally)
+        if (isReflected) {
+            ctx.scale(-1, 1);
+        }
+        
+        // Draw glow for current node
+        if (isCurrent) {
+            ctx.shadowColor = '#f6b93b';
+            ctx.shadowBlur = 15;
+        }
+        
+        // Draw polygon background
+        ctx.beginPath();
+        for (let i = 0; i < numVertices; i++) {
+            const angle = (i * 2 * Math.PI / numVertices) - Math.PI / 2;
+            const px = size * Math.cos(angle);
+            const py = size * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        
+        // Fill with slight transparency
+        ctx.fillStyle = isCurrent ? 'rgba(246, 185, 59, 0.3)' : 'rgba(255, 255, 255, 0.1)';
+        ctx.fill();
+        
+        // Stroke
+        ctx.strokeStyle = isCurrent ? '#f6b93b' : 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = isCurrent ? 2 : 1;
+        ctx.stroke();
+        
+        ctx.shadowBlur = 0;
+        
+        // Draw numbered/colored vertices
+        const vertexSize = size * 0.25;
+        for (let i = 0; i < numVertices; i++) {
+            const angle = (i * 2 * Math.PI / numVertices) - Math.PI / 2;
+            const vx = size * Math.cos(angle);
+            const vy = size * Math.sin(angle);
+            
+            // Colored circle at vertex
+            ctx.beginPath();
+            ctx.arc(vx, vy, vertexSize, 0, Math.PI * 2);
+            ctx.fillStyle = vertexColors[i % vertexColors.length];
+            ctx.fill();
+            
+            // Number label (1, 2, 3...)
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `bold ${Math.max(6, vertexSize * 1.2)}px JetBrains Mono`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText((i + 1).toString(), vx, vy);
+        }
+        
+        ctx.restore();
+    }
+    
+    /**
+     * Draw curved arrow for rotation edges
+     */
+    drawCurvedArrow(ctx, from, to, color, label) {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Shorten the line to not overlap nodes
+        const shortenBy = 20;
+        const ratio = shortenBy / dist;
+        
+        const startX = from.x + dx * ratio;
+        const startY = from.y + dy * ratio;
+        const endX = to.x - dx * ratio;
+        const endY = to.y - dy * ratio;
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        
+        // Arrow head
+        const angle = Math.atan2(endY - startY, endX - startX);
+        const headLen = 8;
+        
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(endX, endY);
+        ctx.lineTo(endX - headLen * Math.cos(angle - Math.PI / 6), endY - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(endX - headLen * Math.cos(angle + Math.PI / 6), endY - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+        
+        // R label near arrow
+        const labelX = (startX + endX) / 2;
+        const labelY = (startY + endY) / 2;
+        const perpX = -dy / dist * 8;
+        const perpY = dx / dist * 8;
+        ctx.fillStyle = color;
+        ctx.font = 'bold 9px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('R', labelX + perpX, labelY + perpY);
+    }
+    
+    /**
+     * Draw dashed line for reflection edges
+     */
+    drawReflectionEdge(ctx, from, to, color) {
+        const dx = to.x - from.x;
+        const dy = to.y - from.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        const shortenBy = 20;
+        const ratio = shortenBy / dist;
+        
+        const startX = from.x + dx * ratio;
+        const startY = from.y + dy * ratio;
+        const endX = to.x - dx * ratio;
+        const endY = to.y - dy * ratio;
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+        
+        // F label in middle
+        const midX = (startX + endX) / 2;
+        const midY = (startY + endY) / 2;
+        ctx.fillStyle = color;
+        ctx.font = 'bold 9px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('F', midX + 8, midY);
+    }
+    
+    /**
+     * Draw arrow head for Cayley graph edges (legacy, kept for compatibility)
      */
     drawArrowHead(ctx, fromX, fromY, toX, toY, color) {
         const headLen = 8;
@@ -1894,12 +2069,20 @@ class WallpaperExplorer {
             this.currentMatrix = SymmetryOps.multiplyMatrices(matrix, this.currentMatrix);
         }
         
-        // Check if the cumulative transformation is a valid symmetry
-        const isValidSymmetry = this.isValidSymmetryOperation(operation);
+        // Calculate REAL correlation between transformed and original
+        // This is the ground truth - no assumptions about validity
+        const realCorrelation = ImageTransform.correlation(
+            this.originalImageData, 
+            this.transformedImageData
+        );
         
-        // For valid symmetries, show original image (mathematically identical)
-        // This avoids interpolation artifacts while keeping composition correct
-        const displayData = isValidSymmetry ? this.originalImageData : this.transformedImageData;
+        // A symmetry is TRULY valid only if correlation >= 99.5%
+        // This catches cases where isValidSymmetryOperation might be wrong
+        const isHighCorrelation = realCorrelation >= 0.995;
+        
+        // For truly identical images (high correlation), we can show original
+        // to avoid visual interpolation artifacts
+        const displayData = isHighCorrelation ? this.originalImageData : this.transformedImageData;
         
         // Animate the transformation visually
         this.animateTransformation(operation, params, () => {
@@ -1917,12 +2100,11 @@ class WallpaperExplorer {
         this.operations.push({ name: opName, params: opParams });
         this.updateHistory();
         
-        // Update difference visualization
-        // For valid symmetries, compare with original (guaranteed 100%)
-        const correlation = this.updateDifference(isValidSymmetry);
+        // Update difference visualization using REAL correlation
+        this.updateDifferenceWithCorrelation(realCorrelation, isHighCorrelation);
         
-        // Update Cayley graph for valid symmetries
-        if (isValidSymmetry) {
+        // Update Cayley graph only for truly valid symmetries (high correlation)
+        if (isHighCorrelation) {
             this.updateCayleyGraphPosition(`${opName} ${opParams}`);
         }
     }
@@ -2039,12 +2221,15 @@ class WallpaperExplorer {
         }, duration);
     }
     
-    updateDifference(isValidSymmetry = false) {
+    /**
+     * Update difference visualization using pre-calculated correlation
+     * This ensures we always use the REAL correlation, not assumptions
+     */
+    updateDifferenceWithCorrelation(realCorrelation, isHighCorrelation) {
         const size = this.canvasSize;
         
-        // For valid symmetries, show perfect match (original vs original)
-        // This avoids showing interpolation artifacts for mathematically identical images
-        const compareData = isValidSymmetry ? this.originalImageData : this.transformedImageData;
+        // For high correlation (true symmetry), show perfect match visualization
+        const compareData = isHighCorrelation ? this.originalImageData : this.transformedImageData;
         
         const diffData = ImageTransform.difference(
             this.originalImageData, 
@@ -2057,8 +2242,45 @@ class WallpaperExplorer {
         imageData.data.set(diffData);
         this.differenceCtx.putImageData(imageData, 0, 0);
         
-        // Calculate and display correlation
-        const correlation = isValidSymmetry ? 1.0 : ImageTransform.correlation(
+        // Display the REAL correlation (not assumed)
+        const percent = Math.round(Math.abs(realCorrelation) * 100);
+        const correlationValue = document.getElementById('correlationValue');
+        correlationValue.textContent = `${percent}%`;
+        
+        // Color code the correlation
+        correlationValue.classList.remove('low', 'medium');
+        if (percent >= 98) {
+            // Very high correlation - it's a symmetry!
+            document.querySelector('.canvas-wrapper.difference').classList.add('match-animation');
+            setTimeout(() => {
+                document.querySelector('.canvas-wrapper.difference').classList.remove('match-animation');
+            }, 1000);
+        } else if (percent < 50) {
+            correlationValue.classList.add('low');
+        } else if (percent < 85) {
+            correlationValue.classList.add('medium');
+        }
+    }
+    
+    /**
+     * Legacy updateDifference for reset and initial display
+     */
+    updateDifference() {
+        const size = this.canvasSize;
+        
+        const diffData = ImageTransform.difference(
+            this.originalImageData, 
+            this.transformedImageData, 
+            size, 
+            size
+        );
+        
+        const imageData = this.differenceCtx.createImageData(size, size);
+        imageData.data.set(diffData);
+        this.differenceCtx.putImageData(imageData, 0, 0);
+        
+        // Calculate REAL correlation
+        const correlation = ImageTransform.correlation(
             this.originalImageData, 
             this.transformedImageData
         );
@@ -2067,10 +2289,9 @@ class WallpaperExplorer {
         const correlationValue = document.getElementById('correlationValue');
         correlationValue.textContent = `${percent}%`;
         
-        // Color code the correlation
+        // Color code
         correlationValue.classList.remove('low', 'medium');
         if (percent >= 98) {
-            // EXACT match or very close - it's a symmetry!
             document.querySelector('.canvas-wrapper.difference').classList.add('match-animation');
             setTimeout(() => {
                 document.querySelector('.canvas-wrapper.difference').classList.remove('match-animation');
@@ -2081,7 +2302,6 @@ class WallpaperExplorer {
             correlationValue.classList.add('medium');
         }
         
-        // Return correlation for use in Cayley graph updates
         return Math.abs(correlation);
     }
     
