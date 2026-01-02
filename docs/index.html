@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Los 17 Grupos de Papel Tapiz - Explorador Interactivo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar de navegación -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">
+                    <span class="logo-icon">◈</span>
+                    <span class="logo-text">Cristalografía</span>
+                </h1>
+                <p class="logo-subtitle">17 Grupos de Simetría</p>
+            </div>
+            
+            <nav class="group-nav">
+                <div class="nav-section">
+                    <h3 class="nav-title">
+                        <span class="lattice-icon oblique">◇</span>
+                        Oblicuo
+                    </h3>
+                    <ul class="nav-list">
+                        <li><button class="nav-btn" data-group="p1">p1 <span class="order">C₁</span></button></li>
+                        <li><button class="nav-btn" data-group="p2">p2 <span class="order">C₂</span></button></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-title">
+                        <span class="lattice-icon rectangular">▭</span>
+                        Rectangular
+                    </h3>
+                    <ul class="nav-list">
+                        <li><button class="nav-btn" data-group="pm">pm <span class="order">σ</span></button></li>
+                        <li><button class="nav-btn" data-group="pg">pg <span class="order">g</span></button></li>
+                        <li><button class="nav-btn" data-group="cm">cm <span class="order">σg</span></button></li>
+                        <li><button class="nav-btn" data-group="pmm">pmm <span class="order">σσ</span></button></li>
+                        <li><button class="nav-btn" data-group="pmg">pmg <span class="order">σg</span></button></li>
+                        <li><button class="nav-btn" data-group="pgg">pgg <span class="order">gg</span></button></li>
+                        <li><button class="nav-btn" data-group="cmm">cmm <span class="order">σσ</span></button></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-title">
+                        <span class="lattice-icon square">□</span>
+                        Cuadrado
+                    </h3>
+                    <ul class="nav-list">
+                        <li><button class="nav-btn" data-group="p4">p4 <span class="order">C₄</span></button></li>
+                        <li><button class="nav-btn" data-group="p4m">p4m <span class="order">C₄σ</span></button></li>
+                        <li><button class="nav-btn" data-group="p4g">p4g <span class="order">C₄g</span></button></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <h3 class="nav-title">
+                        <span class="lattice-icon hexagonal">⬡</span>
+                        Hexagonal
+                    </h3>
+                    <ul class="nav-list">
+                        <li><button class="nav-btn" data-group="p3">p3 <span class="order">C₃</span></button></li>
+                        <li><button class="nav-btn" data-group="p3m1">p3m1 <span class="order">C₃σ</span></button></li>
+                        <li><button class="nav-btn" data-group="p31m">p31m <span class="order">C₃σ</span></button></li>
+                        <li><button class="nav-btn" data-group="p6">p6 <span class="order">C₆</span></button></li>
+                        <li><button class="nav-btn" data-group="p6m">p6m <span class="order">C₆σ</span></button></li>
+                    </ul>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="https://github.com/tomaszbk/crystallography" class="github-link" target="_blank">
+                    <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                    Ver en GitHub
+                </a>
+            </div>
+        </aside>
+        
+        <!-- Contenido principal -->
+        <main class="main-content">
+            <!-- Encabezado del grupo -->
+            <header class="group-header">
+                <div class="group-title-section">
+                    <h2 class="group-name" id="groupName">p1</h2>
+                    <p class="group-description" id="groupDescription">Solo traslaciones, sin simetría puntual</p>
+                </div>
+                <div class="group-properties" id="groupProperties">
+                    <span class="property-tag lattice">Oblicuo</span>
+                    <span class="property-tag rotation">C₁</span>
+                </div>
+            </header>
+            
+            <!-- Panel de visualización -->
+            <section class="visualization-panel">
+                <div class="canvas-grid">
+                    <div class="canvas-container">
+                        <h3 class="canvas-title">Patrón Original</h3>
+                        <div class="canvas-wrapper">
+                            <canvas id="originalCanvas" width="300" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="canvas-container">
+                        <h3 class="canvas-title">Operación Aplicada</h3>
+                        <div class="canvas-wrapper transformed">
+                            <canvas id="transformedCanvas" width="300" height="300"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="canvas-container">
+                        <h3 class="canvas-title">Superposición / Diferencia</h3>
+                        <div class="canvas-wrapper difference">
+                            <canvas id="differenceCanvas" width="300" height="300"></canvas>
+                        </div>
+                        <div class="difference-info" id="differenceInfo">
+                            <span class="correlation-label">Correlación:</span>
+                            <span class="correlation-value" id="correlationValue">100%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Panel de controles de simetría -->
+            <section class="controls-panel">
+                <div class="controls-grid">
+                    <!-- Rotaciones -->
+                    <div class="control-group">
+                        <h4 class="control-title">
+                            <span class="control-icon">↻</span>
+                            Rotaciones
+                        </h4>
+                        <div class="button-grid">
+                            <button class="symmetry-btn" data-operation="rotate" data-angle="60" title="Rotación 60°">
+                                <span class="btn-symbol">C₆</span>
+                                <span class="btn-label">60°</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="rotate" data-angle="90" title="Rotación 90°">
+                                <span class="btn-symbol">C₄</span>
+                                <span class="btn-label">90°</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="rotate" data-angle="120" title="Rotación 120°">
+                                <span class="btn-symbol">C₃</span>
+                                <span class="btn-label">120°</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="rotate" data-angle="180" title="Rotación 180°">
+                                <span class="btn-symbol">C₂</span>
+                                <span class="btn-label">180°</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Reflexiones -->
+                    <div class="control-group">
+                        <h4 class="control-title">
+                            <span class="control-icon">⟷</span>
+                            Reflexiones
+                        </h4>
+                        <div class="button-grid">
+                            <button class="symmetry-btn" data-operation="reflect" data-axis="vertical" title="Reflexión Vertical">
+                                <span class="btn-symbol">σᵥ</span>
+                                <span class="btn-label">Vertical</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="reflect" data-axis="horizontal" title="Reflexión Horizontal">
+                                <span class="btn-symbol">σₕ</span>
+                                <span class="btn-label">Horizontal</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="reflect" data-axis="diagonal" title="Reflexión Diagonal">
+                                <span class="btn-symbol">σ_d</span>
+                                <span class="btn-label">Diagonal</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="reflect" data-axis="antidiagonal" title="Reflexión Anti-diagonal">
+                                <span class="btn-symbol">σ_d'</span>
+                                <span class="btn-label">Anti-diag</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Traslaciones -->
+                    <div class="control-group">
+                        <h4 class="control-title">
+                            <span class="control-icon">→</span>
+                            Traslaciones
+                        </h4>
+                        <div class="button-grid translation-grid">
+                            <button class="symmetry-btn" data-operation="translate" data-dx="0.25" data-dy="0" title="Traslación →">
+                                <span class="btn-symbol">T→</span>
+                                <span class="btn-label">¼ a</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="translate" data-dx="0.5" data-dy="0" title="Traslación → ½">
+                                <span class="btn-symbol">T→</span>
+                                <span class="btn-label">½ a</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="translate" data-dx="0" data-dy="0.25" title="Traslación ↓">
+                                <span class="btn-symbol">T↓</span>
+                                <span class="btn-label">¼ b</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="translate" data-dx="0" data-dy="0.5" title="Traslación ↓ ½">
+                                <span class="btn-symbol">T↓</span>
+                                <span class="btn-label">½ b</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Reflexiones deslizantes -->
+                    <div class="control-group">
+                        <h4 class="control-title">
+                            <span class="control-icon">↮</span>
+                            Glide (Reflexión + Traslación)
+                        </h4>
+                        <div class="button-grid">
+                            <button class="symmetry-btn" data-operation="glide" data-axis="horizontal" title="Glide Horizontal">
+                                <span class="btn-symbol">gₕ</span>
+                                <span class="btn-label">Horizontal</span>
+                            </button>
+                            <button class="symmetry-btn" data-operation="glide" data-axis="vertical" title="Glide Vertical">
+                                <span class="btn-symbol">gᵥ</span>
+                                <span class="btn-label">Vertical</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botón de reset -->
+                <div class="reset-section">
+                    <button class="reset-btn" id="resetBtn">
+                        <span class="reset-icon">↺</span>
+                        Resetear Transformaciones
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Historial de operaciones -->
+            <aside class="operations-history">
+                <h3 class="history-title">
+                    <span class="history-icon">📋</span>
+                    Operaciones Aplicadas
+                </h3>
+                <div class="history-list" id="operationsHistory">
+                    <p class="history-empty">No hay operaciones aplicadas</p>
+                </div>
+                <div class="history-stats" id="historyStats">
+                    <span class="stats-item">Total: <strong id="totalOps">0</strong></span>
+                </div>
+            </aside>
+        </main>
+        
+        <!-- Panel de información matemática -->
+        <aside class="math-panel">
+            <h3 class="math-title">Información Matemática</h3>
+            
+            <div class="math-section" id="groupMathInfo">
+                <h4>Grupo: <span id="mathGroupName">p1</span></h4>
+                
+                <div class="math-property">
+                    <label>Tipo de Red:</label>
+                    <span id="mathLattice">Oblicuo</span>
+                </div>
+                
+                <div class="math-property">
+                    <label>Orden de Rotación:</label>
+                    <span id="mathRotation">1 (360°)</span>
+                </div>
+                
+                <div class="math-property">
+                    <label>Reflexión:</label>
+                    <span id="mathReflection">No</span>
+                </div>
+                
+                <div class="math-property">
+                    <label>Glide:</label>
+                    <span id="mathGlide">No</span>
+                </div>
+                
+                <div class="math-property">
+                    <label>Orden del Grupo Puntual:</label>
+                    <span id="mathPointGroupOrder">1</span>
+                </div>
+            </div>
+            
+            <div class="math-section">
+                <h4>Matriz de Transformación Actual</h4>
+                <div class="matrix-display" id="currentMatrix">
+                    <div class="matrix-bracket left">[</div>
+                    <div class="matrix-content">
+                        <div class="matrix-row">
+                            <span id="m00">1</span>
+                            <span id="m01">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span id="m10">0</span>
+                            <span id="m11">1</span>
+                        </div>
+                    </div>
+                    <div class="matrix-bracket right">]</div>
+                </div>
+            </div>
+            
+            <div class="math-section">
+                <h4>Generadores del Grupo</h4>
+                <div class="generators-list" id="generatorsList">
+                    <code>t₁, t₂</code>
+                </div>
+            </div>
+            
+            <div class="math-section formula-section">
+                <h4>Fórmulas Clave</h4>
+                <div class="formula">
+                    <p>Rotación θ:</p>
+                    <code class="matrix-formula">
+                        R(θ) = [cos θ, -sin θ; sin θ, cos θ]
+                    </code>
+                </div>
+                <div class="formula">
+                    <p>Reflexión σ · σ = Rotación:</p>
+                    <code class="matrix-formula">
+                        σᵥ ∘ σₕ = C₂ (180°)
+                    </code>
+                </div>
+            </div>
+        </aside>
+    </div>
+    
+    <!-- Modal de ayuda -->
+    <div class="modal" id="helpModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal">×</button>
+            <h2>Cómo usar este explorador</h2>
+            <div class="help-content">
+                <section>
+                    <h3>1. Seleccionar un grupo</h3>
+                    <p>Usa el menú lateral para elegir uno de los 17 grupos de simetría.</p>
+                </section>
+                <section>
+                    <h3>2. Aplicar operaciones</h3>
+                    <p>Haz clic en los botones de simetría para aplicar rotaciones, reflexiones, traslaciones o glides.</p>
+                </section>
+                <section>
+                    <h3>3. Observar los resultados</h3>
+                    <p>Compara el patrón original con el transformado. Si coinciden (correlación ≈ 100%), ¡la operación es una simetría del grupo!</p>
+                </section>
+                <section>
+                    <h3>4. Experimentar</h3>
+                    <p>Combina múltiples operaciones y observa cómo se relacionan. Usa el botón Reset para empezar de nuevo.</p>
+                </section>
+            </div>
+        </div>
+    </div>
+    
+    <button class="help-btn" id="helpBtn" title="Ayuda">?</button>
+    
+    <script src="js/symmetry.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
+

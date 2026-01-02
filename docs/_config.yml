@@ -1,0 +1,22 @@
+# GitHub Pages Configuration
+title: "Cristalografía - Los 17 Grupos de Papel Tapiz"
+description: "Explorador interactivo de los 17 grupos de simetría de papel tapiz"
+theme: null
+baseurl: ""
+url: ""
+
+# Disable Jekyll processing for faster builds
+exclude:
+  - Wallpaper_Groups_Guide.ipynb
+  - Wallpaper_Groups_Guide_ES.ipynb
+  - Wallpaper_Groups_Guide_executed.ipynb
+  - Wallpaper_Groups_Guide_ES_executed.ipynb
+  - API_REFERENCE.md
+  - ARCHITECTURE.md
+
+include:
+  - index.html
+  - css
+  - js
+  - images
+
