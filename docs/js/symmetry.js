@@ -428,31 +428,33 @@ const ImageTransform = {
     /**
      * Calculate similarity between two images
      * Returns value between 0 and 1, where 1 means identical images
+     * Uses a more sensitive metric: counts pixels that are "different enough"
      */
     correlation(imageData1, imageData2) {
-        let totalDiff = 0;
-        let n = 0;
+        let exactMatches = 0;
+        let nearMatches = 0;  // diff <= 5 (interpolation tolerance)
+        let totalPixels = 0;
         
         for (let i = 0; i < imageData1.length; i += 4) {
             const diffR = Math.abs(imageData1[i] - imageData2[i]);
             const diffG = Math.abs(imageData1[i + 1] - imageData2[i + 1]);
             const diffB = Math.abs(imageData1[i + 2] - imageData2[i + 2]);
             
-            // Average difference for this pixel (0-255 scale)
-            const avgDiff = (diffR + diffG + diffB) / 3;
-            totalDiff += avgDiff;
-            n++;
+            const maxDiff = Math.max(diffR, diffG, diffB);
+            
+            if (maxDiff === 0) {
+                exactMatches++;
+            } else if (maxDiff <= 5) {
+                nearMatches++;
+            }
+            totalPixels++;
         }
         
-        // Calculate average difference per pixel (0-255 scale)
-        const avgDiffPerPixel = totalDiff / n;
+        // A true symmetry should have nearly all pixels matching exactly or nearly
+        // This is stricter: only exact + near matches count toward 100%
+        const matchRatio = (exactMatches + nearMatches * 0.9) / totalPixels;
         
-        // Convert to similarity (0-1 scale)
-        // avgDiffPerPixel = 0 -> similarity = 1
-        // avgDiffPerPixel = 255 -> similarity = 0
-        const similarity = 1 - (avgDiffPerPixel / 255);
-        
-        return similarity;
+        return matchRatio;
     }
 };
 
