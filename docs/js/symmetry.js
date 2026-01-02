@@ -415,57 +415,32 @@ const ImageTransform = {
 
     /**
      * Calculate similarity between two images
-     * Uses normalized difference with tolerance for interpolation errors
-     * Returns 1.0 for exact/near matches, lower values for differences
+     * Returns value between 0 and 1, where 1 means identical images
      */
     correlation(imageData1, imageData2) {
-        let exactPixels = 0;
-        let nearPixels = 0;
-        let totalWeightedDiff = 0;
+        let totalDiff = 0;
         let n = 0;
-        
-        // Tolerance for interpolation errors (RGB value difference per channel)
-        const exactTolerance = 1;   // Rounding errors
-        const nearTolerance = 5;    // Interpolation errors
         
         for (let i = 0; i < imageData1.length; i += 4) {
             const diffR = Math.abs(imageData1[i] - imageData2[i]);
             const diffG = Math.abs(imageData1[i + 1] - imageData2[i + 1]);
             const diffB = Math.abs(imageData1[i + 2] - imageData2[i + 2]);
             
-            const maxDiff = Math.max(diffR, diffG, diffB);
-            
-            if (maxDiff <= exactTolerance) {
-                exactPixels++;
-            } else if (maxDiff <= nearTolerance) {
-                nearPixels++;
-                totalWeightedDiff += maxDiff / 255;
-            } else {
-                totalWeightedDiff += maxDiff / 255;
-            }
+            // Average difference for this pixel (0-255 scale)
+            const avgDiff = (diffR + diffG + diffB) / 3;
+            totalDiff += avgDiff;
             n++;
         }
         
-        // If all pixels are exact match, return 1
-        if (exactPixels === n) {
-            return 1.0;
-        }
+        // Calculate average difference per pixel (0-255 scale)
+        const avgDiffPerPixel = totalDiff / n;
         
-        // If most pixels are exact or near, and no significant errors
-        const matchRatio = (exactPixels + nearPixels) / n;
-        if (matchRatio > 0.99 && totalWeightedDiff < n * 0.01) {
-            return 1.0;  // Effectively identical
-        }
+        // Convert to similarity (0-1 scale)
+        // avgDiffPerPixel = 0 -> similarity = 1
+        // avgDiffPerPixel = 255 -> similarity = 0
+        const similarity = 1 - (avgDiffPerPixel / 255);
         
-        // Calculate similarity: weight exact matches heavily
-        // Each near pixel contributes proportionally less
-        const similarity = (exactPixels + nearPixels * 0.9) / n;
-        
-        // Also factor in the average difference for non-matching pixels
-        const avgDiff = totalWeightedDiff / Math.max(1, n - exactPixels);
-        const adjustedSimilarity = similarity * (1 - avgDiff * 0.1);
-        
-        return Math.max(0, Math.min(1, adjustedSimilarity));
+        return similarity;
     }
 };
 
