@@ -1079,15 +1079,39 @@ canvas {
     100% { transform: rotate(0deg) scaleX(1); }
 }
 
-/* Translation animations */
-.canvas-animated.translating canvas {
-    animation: translate 0.6s ease-in-out forwards;
+/* Translation animations - direction specific */
+.canvas-animated.translating-right canvas {
+    animation: translateRight 0.5s ease-in-out forwards;
+}
+.canvas-animated.translating-left canvas {
+    animation: translateLeft 0.5s ease-in-out forwards;
+}
+.canvas-animated.translating-down canvas {
+    animation: translateDown 0.5s ease-in-out forwards;
+}
+.canvas-animated.translating-up canvas {
+    animation: translateUp 0.5s ease-in-out forwards;
 }
 
-@keyframes translate {
-    0% { transform: translateX(0) translateY(0); opacity: 1; }
-    50% { transform: translateX(30px) translateY(30px); opacity: 0.5; }
-    100% { transform: translateX(0) translateY(0); opacity: 1; }
+@keyframes translateRight {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(40px); opacity: 0.7; }
+    100% { transform: translateX(0); }
+}
+@keyframes translateLeft {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(-40px); opacity: 0.7; }
+    100% { transform: translateX(0); }
+}
+@keyframes translateDown {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(40px); opacity: 0.7; }
+    100% { transform: translateY(0); }
+}
+@keyframes translateUp {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-40px); opacity: 0.7; }
+    100% { transform: translateY(0); }
 }
 
 /* Glide animation (reflection + translation) */

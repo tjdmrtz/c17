@@ -2178,7 +2178,8 @@ class WallpaperExplorer {
             'rotating-180', 'rotating-240', 'rotating-270', 'rotating-300',
             'reflecting-vertical', 'reflecting-horizontal', 
             'reflecting-diagonal', 'reflecting-antidiagonal',
-            'translating', 'gliding-horizontal', 'gliding-vertical'
+            'translating-right', 'translating-left', 'translating-down', 'translating-up',
+            'gliding-horizontal', 'gliding-vertical'
         );
         
         // Force reflow to restart animation
@@ -2201,8 +2202,21 @@ class WallpaperExplorer {
                 break;
                 
             case 'translate':
-                animationClass = 'translating';
-                duration = 600;
+                // Determine direction based on dx/dy
+                const tdx = parseFloat(params.dx) || 0;
+                const tdy = parseFloat(params.dy) || 0;
+                if (tdx > 0) {
+                    animationClass = 'translating-right';
+                } else if (tdx < 0) {
+                    animationClass = 'translating-left';
+                } else if (tdy > 0) {
+                    animationClass = 'translating-down';
+                } else if (tdy < 0) {
+                    animationClass = 'translating-up';
+                } else {
+                    animationClass = 'translating-right'; // fallback
+                }
+                duration = 500;
                 break;
                 
             case 'glide':
