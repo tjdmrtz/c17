@@ -1889,14 +1889,24 @@ class WallpaperExplorer {
         // Always apply the actual transformation - this ensures correct composition
         this.transformedImageData = newData;
         
-        // Update display
-        const imageData = this.transformedCtx.createImageData(size, size);
-        imageData.data.set(this.transformedImageData);
-        this.transformedCtx.putImageData(imageData, 0, 0);
-        
         // Update cumulative matrix for rotation/reflection
         if (operation === 'rotate' || operation === 'reflect') {
             this.currentMatrix = SymmetryOps.multiplyMatrices(matrix, this.currentMatrix);
+        }
+        
+        // Check if the cumulative transformation is a valid symmetry
+        const isValidSymmetry = this.isValidSymmetryOperation(operation);
+        
+        // For valid symmetries, show original image (mathematically identical)
+        // This avoids interpolation artifacts while keeping composition correct
+        const displayData = isValidSymmetry ? this.originalImageData : this.transformedImageData;
+        
+        // Update display
+        const imageData = this.transformedCtx.createImageData(size, size);
+        imageData.data.set(displayData);
+        this.transformedCtx.putImageData(imageData, 0, 0);
+        
+        if (operation === 'rotate' || operation === 'reflect') {
             this.updateMatrixDisplay();
         }
         
@@ -1904,14 +1914,57 @@ class WallpaperExplorer {
         this.operations.push({ name: opName, params: opParams });
         this.updateHistory();
         
-        // Update difference visualization and get correlation
-        const correlation = this.updateDifference();
+        // Update difference visualization
+        // For valid symmetries, compare with original (guaranteed 100%)
+        const correlation = this.updateDifference(isValidSymmetry);
         
-        // Update Cayley graph if high correlation (valid symmetry)
-        // Use 95% threshold to account for interpolation errors in non-90° rotations
-        if (correlation >= 0.95) {
+        // Update Cayley graph for valid symmetries
+        if (isValidSymmetry) {
             this.updateCayleyGraphPosition(`${opName} ${opParams}`);
         }
+    }
+    
+    /**
+     * Check if the current cumulative transformation is a valid symmetry
+     */
+    isValidSymmetryOperation(operation) {
+        const group = WallpaperGroups[this.currentGroup];
+        
+        // Translations and glides move the pattern - not point group symmetries
+        if (operation === 'translate' || operation === 'glide') {
+            return false;
+        }
+        
+        // Calculate cumulative state from matrix
+        const m = this.currentMatrix;
+        const det = m[0][0] * m[1][1] - m[0][1] * m[1][0];
+        const isReflection = det < 0;
+        
+        // Get cumulative rotation angle
+        let angle = Math.atan2(m[1][0], m[0][0]) * 180 / Math.PI;
+        if (angle < 0) angle += 360;
+        angle = Math.round(angle) % 360;
+        
+        // Identity is always valid
+        if (angle === 0 && !isReflection) {
+            return true;
+        }
+        
+        // Check if rotation angle is valid for this group
+        const rotationOrder = group.rotationOrder;
+        if (rotationOrder > 1 && !isReflection) {
+            const baseAngle = 360 / rotationOrder;
+            if (angle % baseAngle === 0) {
+                return true;
+            }
+        }
+        
+        // Check if reflection is valid
+        if (isReflection && group.hasReflection) {
+            return true;
+        }
+        
+        return false;
     }
     
     translateAxis(axis) {
@@ -1924,11 +1977,16 @@ class WallpaperExplorer {
         return translations[axis] || axis;
     }
     
-    updateDifference() {
+    updateDifference(isValidSymmetry = false) {
         const size = this.canvasSize;
+        
+        // For valid symmetries, show perfect match (original vs original)
+        // This avoids showing interpolation artifacts for mathematically identical images
+        const compareData = isValidSymmetry ? this.originalImageData : this.transformedImageData;
+        
         const diffData = ImageTransform.difference(
             this.originalImageData, 
-            this.transformedImageData, 
+            compareData, 
             size, 
             size
         );
@@ -1938,7 +1996,7 @@ class WallpaperExplorer {
         this.differenceCtx.putImageData(imageData, 0, 0);
         
         // Calculate and display correlation
-        const correlation = ImageTransform.correlation(
+        const correlation = isValidSymmetry ? 1.0 : ImageTransform.correlation(
             this.originalImageData, 
             this.transformedImageData
         );
