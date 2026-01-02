@@ -28,8 +28,9 @@ class WallpaperExplorer {
         this.differenceCtx = this.differenceCanvas.getContext('2d');
         
         // Canvas size - use ODD number so center pixel is exact (150,150)
-        // This ensures perfect 90°/180°/270° rotations
-        this.canvasSize = 301;
+        // 300 es divisible por 2, 3, 4, 5, 6 - perfecto para traslaciones exactas
+        // El centro de rotación es 149.5 (entre pixels 149 y 150)
+        this.canvasSize = 300;
         
         this.init();
     }
