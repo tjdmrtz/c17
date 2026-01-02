@@ -2111,23 +2111,25 @@ class WallpaperExplorer {
         }
         
         // Calculate REAL correlation between transformed and original
-        // This is the ground truth - no assumptions about validity
         const realCorrelation = ImageTransform.correlation(
             this.originalImageData, 
             this.transformedImageData
         );
         
-        // A symmetry is TRULY valid only if correlation >= 99.5%
-        // This catches cases where isValidSymmetryOperation might be wrong
-        const isHighCorrelation = realCorrelation >= 0.995;
+        // Threshold más tolerante (90%) para detectar simetrías
+        // Los errores de interpolación pueden bajar la correlación incluso en simetrías válidas
+        const isValidSymmetry = realCorrelation >= 0.90;
         
-        // For truly identical images (high correlation), we can show original
-        // to avoid visual interpolation artifacts
-        const displayData = isHighCorrelation ? this.originalImageData : this.transformedImageData;
+        // Para simetrías válidas, mostrar imagen original (evita artefactos de interpolación)
+        // Para no-simetrías, mostrar la transformación real
+        const displayData = isValidSymmetry ? this.originalImageData : this.transformedImageData;
         
-        // Animate the transformation visually
+        // Para la visualización de diferencia: si es simetría, comparar original con original (= 100%)
+        const displayCorrelation = isValidSymmetry ? 1.0 : realCorrelation;
+        
+        // Animate the transformation visually (siempre se muestra la animación)
         this.animateTransformation(operation, params, () => {
-            // Update display after animation
+            // Después de la animación, mostrar el resultado
             const imageData = this.transformedCtx.createImageData(size, size);
             imageData.data.set(displayData);
             this.transformedCtx.putImageData(imageData, 0, 0);
@@ -2141,11 +2143,13 @@ class WallpaperExplorer {
         this.operations.push({ name: opName, params: opParams });
         this.updateHistory();
         
-        // Update difference visualization using REAL correlation
-        this.updateDifferenceWithCorrelation(realCorrelation, isHighCorrelation);
+        // Update difference visualization
+        // Si es simetría válida: mostrar 100% y sin diferencias
+        // Si no es simetría: mostrar correlación real y diferencias reales
+        this.updateDifferenceWithCorrelation(displayCorrelation, isValidSymmetry);
         
-        // Update Cayley graph only for truly valid symmetries (high correlation)
-        if (isHighCorrelation) {
+        // Update Cayley graph para simetrías válidas
+        if (isValidSymmetry) {
             this.updateCayleyGraphPosition(`${opName} ${opParams}`);
         }
     }
@@ -2278,13 +2282,14 @@ class WallpaperExplorer {
     
     /**
      * Update difference visualization using pre-calculated correlation
-     * This ensures we always use the REAL correlation, not assumptions
+     * Si isValidSymmetry=true, muestra diferencia perfecta (100%)
+     * Si isValidSymmetry=false, muestra diferencia real
      */
-    updateDifferenceWithCorrelation(realCorrelation, isHighCorrelation) {
+    updateDifferenceWithCorrelation(correlationToShow, isValidSymmetry) {
         const size = this.canvasSize;
         
-        // For high correlation (true symmetry), show perfect match visualization
-        const compareData = isHighCorrelation ? this.originalImageData : this.transformedImageData;
+        // Para simetrías válidas: comparar original con original = sin diferencias
+        const compareData = isValidSymmetry ? this.originalImageData : this.transformedImageData;
         
         const diffData = ImageTransform.difference(
             this.originalImageData, 
@@ -2297,15 +2302,15 @@ class WallpaperExplorer {
         imageData.data.set(diffData);
         this.differenceCtx.putImageData(imageData, 0, 0);
         
-        // Display the REAL correlation (not assumed)
-        const percent = Math.round(Math.abs(realCorrelation) * 100);
+        // Mostrar el porcentaje
+        const percent = Math.round(Math.abs(correlationToShow) * 100);
         const correlationValue = document.getElementById('correlationValue');
         correlationValue.textContent = `${percent}%`;
         
         // Color code the correlation
         correlationValue.classList.remove('low', 'medium');
-        if (percent >= 98) {
-            // Very high correlation - it's a symmetry!
+        if (isValidSymmetry || percent >= 98) {
+            // Es simetría - mostrar match
             document.querySelector('.canvas-wrapper.difference').classList.add('match-animation');
             setTimeout(() => {
                 document.querySelector('.canvas-wrapper.difference').classList.remove('match-animation');
