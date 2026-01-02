@@ -328,11 +328,21 @@
                 <!-- Cayley Graph inline with table -->
                 <div class="cayley-graph-container" style="margin-top: 1rem;">
                     <h5>Grafo de Cayley</h5>
+                    <div class="cayley-graph-explanation">
+                        <p><strong>¿Qué representa este grafo?</strong></p>
+                        <ul>
+                            <li><strong>Nodos:</strong> Cada nodo es un elemento del grupo puntual</li>
+                            <li><strong>Aristas →:</strong> Conexiones por generador (rotación)</li>
+                            <li><strong>Aristas ⤏:</strong> Reflexiones (σ² = e, son involutivas)</li>
+                            <li><strong>Nodo amarillo:</strong> Tu posición actual después de aplicar operaciones</li>
+                        </ul>
+                    </div>
                     <canvas id="cayleyGraph" width="320" height="250"></canvas>
                     <div class="graph-legend">
-                        <span class="legend-item"><span class="legend-color identity"></span> e</span>
+                        <span class="legend-item"><span class="legend-color identity"></span> Identidad</span>
                         <span class="legend-item"><span class="legend-color rotation"></span> Rotación</span>
                         <span class="legend-item"><span class="legend-color reflection"></span> Reflexión</span>
+                        <span class="legend-item"><span class="legend-color current"></span> Posición actual</span>
                     </div>
                 </div>
             </div>

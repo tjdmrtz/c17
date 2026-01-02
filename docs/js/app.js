@@ -14,6 +14,10 @@ class WallpaperExplorer {
         this.originalImageData = null;
         this.transformedImageData = null;
         
+        // Track current position in Cayley graph
+        this.currentCayleyNode = 'e';
+        this.cayleyNodes = [];  // Store node positions for interactivity
+        
         // Canvas elements
         this.originalCanvas = document.getElementById('originalCanvas');
         this.transformedCanvas = document.getElementById('transformedCanvas');
@@ -90,6 +94,7 @@ class WallpaperExplorer {
     
     selectGroup(groupName) {
         this.currentGroup = groupName;
+        this.currentCayleyNode = 'e';  // Reset to identity
         const group = WallpaperGroups[groupName];
         
         // Update navigation
@@ -186,6 +191,9 @@ class WallpaperExplorer {
         const elements = group.cayleyTable.elements;
         const table = group.cayleyTable.table;
         
+        // Find identity element (usually 'e')
+        const identitySymbols = ['e', 'E', 'I', 'Id', 'id'];
+        
         let html = '<table class="cayley-table"><thead><tr><th>∘</th>';
         for (const el of elements) {
             html += `<th>${el}</th>`;
@@ -195,20 +203,48 @@ class WallpaperExplorer {
         for (let i = 0; i < elements.length; i++) {
             html += `<tr><th>${elements[i]}</th>`;
             for (let j = 0; j < elements.length; j++) {
-                html += `<td>${table[i][j]}</td>`;
+                const result = table[i][j];
+                // Check if result is identity (a·b = e means b is inverse of a)
+                const isIdentity = identitySymbols.includes(result);
+                // Check if it's a self-inverse (a·a = e) 
+                const isSelfInverse = isIdentity && i === j;
+                // Check if it's an inverse pair (a·b = e where a ≠ b)
+                const isInversePair = isIdentity && i !== j;
+                
+                let cellClass = '';
+                let tooltip = '';
+                if (isSelfInverse) {
+                    cellClass = 'cayley-self-inverse';
+                    tooltip = `${elements[i]} es su propio inverso`;
+                } else if (isInversePair) {
+                    cellClass = 'cayley-inverse';
+                    tooltip = `${elements[i]} × ${elements[j]} = e (son inversos)`;
+                }
+                
+                html += `<td class="${cellClass}" ${tooltip ? `title="${tooltip}"` : ''} data-row="${elements[i]}" data-col="${elements[j]}" data-result="${result}">${result}</td>`;
             }
             html += '</tr>';
         }
         
         html += '</tbody></table>';
+        
+        // Add legend for highlighted cells
+        html += `
+            <div class="cayley-legend">
+                <span class="legend-item"><span class="legend-box self-inverse"></span> A² = e (involutivo)</span>
+                <span class="legend-item"><span class="legend-box inverse-pair"></span> A·B = e (inversos)</span>
+            </div>
+        `;
+        
         container.innerHTML = html;
     }
     
     /**
      * Draw Cayley graph for the group's point group
      * Nodes are group elements, edges show generator connections
+     * Interactive: highlights current position after applying operations
      */
-    drawCayleyGraph(group) {
+    drawCayleyGraph(group, highlightNode = 'e') {
         const canvas = document.getElementById('cayleyGraph');
         if (!canvas) return;
         
@@ -233,74 +269,91 @@ class WallpaperExplorer {
         
         // Position nodes in a circle
         const centerX = width / 2;
-        const centerY = height / 2;
-        const radius = Math.min(width, height) / 2 - 50;
+        const centerY = height / 2 - 10;  // Shift up a bit for legend
+        const radius = Math.min(width, height) / 2 - 60;
         
-        const nodes = [];
+        this.cayleyNodes = [];
         for (let i = 0; i < n; i++) {
             const angle = (i * 2 * Math.PI / n) - Math.PI / 2;  // Start from top
-            nodes.push({
+            this.cayleyNodes.push({
                 x: centerX + radius * Math.cos(angle),
                 y: centerY + radius * Math.sin(angle),
                 label: elements[i],
                 isIdentity: elements[i] === 'e',
                 isRotation: elements[i].startsWith('C') || elements[i].includes('₄') || elements[i].includes('₃') || elements[i].includes('₂') || elements[i].includes('₆'),
-                isReflection: elements[i].startsWith('σ') || elements[i] === 'σᵥ' || elements[i] === 'σₕ' || elements[i].includes('σ')
+                isReflection: elements[i].startsWith('σ') || elements[i] === 'σᵥ' || elements[i] === 'σₕ' || elements[i].includes('σ') || elements[i].includes('g'),
+                isCurrent: elements[i] === highlightNode
             });
         }
         
-        // Draw edges (connections between elements via generators)
+        // Draw edges with arrows to show generator connections
         ctx.lineWidth = 1.5;
         
-        // Connect each element to what it produces when composed with generators
-        // For simplicity, connect consecutive elements and identity to all
+        // Draw rotation edges (connecting consecutive rotations)
         for (let i = 0; i < n; i++) {
-            // Connect to next element (cyclic structure)
             const j = (i + 1) % n;
             
-            // Gradient line
-            const gradient = ctx.createLinearGradient(nodes[i].x, nodes[i].y, nodes[j].x, nodes[j].y);
+            // Create curved edges for better visualization
+            const gradient = ctx.createLinearGradient(
+                this.cayleyNodes[i].x, this.cayleyNodes[i].y, 
+                this.cayleyNodes[j].x, this.cayleyNodes[j].y
+            );
             
-            if (nodes[i].isRotation || nodes[j].isRotation) {
-                gradient.addColorStop(0, 'rgba(183, 148, 246, 0.6)');
-                gradient.addColorStop(1, 'rgba(183, 148, 246, 0.3)');
-            } else if (nodes[i].isReflection || nodes[j].isReflection) {
-                gradient.addColorStop(0, 'rgba(79, 168, 199, 0.6)');
-                gradient.addColorStop(1, 'rgba(79, 168, 199, 0.3)');
+            // Color by edge type
+            if (this.cayleyNodes[i].isRotation || this.cayleyNodes[j].isRotation) {
+                gradient.addColorStop(0, 'rgba(183, 148, 246, 0.7)');
+                gradient.addColorStop(1, 'rgba(183, 148, 246, 0.4)');
+            } else if (this.cayleyNodes[i].isReflection || this.cayleyNodes[j].isReflection) {
+                gradient.addColorStop(0, 'rgba(79, 168, 199, 0.7)');
+                gradient.addColorStop(1, 'rgba(79, 168, 199, 0.4)');
             } else {
-                gradient.addColorStop(0, 'rgba(0, 212, 170, 0.6)');
-                gradient.addColorStop(1, 'rgba(0, 212, 170, 0.3)');
+                gradient.addColorStop(0, 'rgba(0, 212, 170, 0.7)');
+                gradient.addColorStop(1, 'rgba(0, 212, 170, 0.4)');
             }
             
             ctx.strokeStyle = gradient;
             ctx.beginPath();
-            ctx.moveTo(nodes[i].x, nodes[i].y);
-            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.moveTo(this.cayleyNodes[i].x, this.cayleyNodes[i].y);
+            ctx.lineTo(this.cayleyNodes[j].x, this.cayleyNodes[j].y);
             ctx.stroke();
+            
+            // Draw arrow head
+            this.drawArrowHead(ctx, 
+                this.cayleyNodes[i].x, this.cayleyNodes[i].y,
+                this.cayleyNodes[j].x, this.cayleyNodes[j].y,
+                gradient
+            );
         }
         
-        // Draw special connections for reflections (involutions: σ² = e)
+        // Draw reflection edges (involutions connect back to identity)
         for (let i = 0; i < n; i++) {
-            if (nodes[i].isReflection) {
-                // Connect back to identity
-                ctx.strokeStyle = 'rgba(79, 168, 199, 0.3)';
-                ctx.setLineDash([3, 3]);
+            if (this.cayleyNodes[i].isReflection && !this.cayleyNodes[i].isIdentity) {
+                ctx.strokeStyle = 'rgba(79, 168, 199, 0.35)';
+                ctx.setLineDash([4, 4]);
+                ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(nodes[i].x, nodes[i].y);
-                ctx.lineTo(nodes[0].x, nodes[0].y);  // e is usually first
+                ctx.moveTo(this.cayleyNodes[i].x, this.cayleyNodes[i].y);
+                ctx.lineTo(this.cayleyNodes[0].x, this.cayleyNodes[0].y);
                 ctx.stroke();
                 ctx.setLineDash([]);
+                ctx.lineWidth = 1.5;
             }
         }
         
         // Draw nodes
-        const nodeRadius = 20;
+        const nodeRadius = 18;
         
-        for (const node of nodes) {
-            // Glow effect
-            const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, nodeRadius * 1.5);
+        for (const node of this.cayleyNodes) {
+            // Glow effect (stronger for current node)
+            const glowRadius = node.isCurrent ? nodeRadius * 2.5 : nodeRadius * 1.5;
+            const glow = ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, glowRadius);
             
-            if (node.isIdentity) {
+            if (node.isCurrent) {
+                // Strong glow for current position
+                glow.addColorStop(0, 'rgba(246, 185, 59, 0.8)');
+                glow.addColorStop(0.5, 'rgba(246, 185, 59, 0.3)');
+                glow.addColorStop(1, 'rgba(246, 185, 59, 0)');
+            } else if (node.isIdentity) {
                 glow.addColorStop(0, 'rgba(0, 212, 170, 0.4)');
                 glow.addColorStop(1, 'rgba(0, 212, 170, 0)');
             } else if (node.isRotation) {
@@ -313,34 +366,113 @@ class WallpaperExplorer {
             
             ctx.fillStyle = glow;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, nodeRadius * 1.5, 0, Math.PI * 2);
+            ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
             ctx.fill();
             
             // Node circle
-            ctx.fillStyle = node.isIdentity ? '#00d4aa' : 
-                           node.isRotation ? '#b794f6' : '#4fa8c7';
+            let nodeColor;
+            if (node.isCurrent) {
+                nodeColor = '#f6b93b';  // Amber for current
+            } else if (node.isIdentity) {
+                nodeColor = '#00d4aa';
+            } else if (node.isRotation) {
+                nodeColor = '#b794f6';
+            } else {
+                nodeColor = '#4fa8c7';
+            }
+            
+            ctx.fillStyle = nodeColor;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+            ctx.arc(node.x, node.y, node.isCurrent ? nodeRadius + 3 : nodeRadius, 0, Math.PI * 2);
             ctx.fill();
             
             // Border
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = node.isCurrent ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = node.isCurrent ? 3 : 2;
             ctx.stroke();
             
             // Label
             ctx.fillStyle = '#0f1419';
-            ctx.font = 'bold 11px JetBrains Mono';
+            ctx.font = node.isCurrent ? 'bold 12px JetBrains Mono' : 'bold 10px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(node.label, node.x, node.y);
         }
         
-        // Title at bottom
+        // Info at bottom
         ctx.fillStyle = '#8b98a5';
-        ctx.font = '10px Outfit';
+        ctx.font = '9px Outfit';
         ctx.textAlign = 'center';
-        ctx.fillText(`Grupo Puntual: ${n} elementos`, width/2, height - 8);
+        ctx.fillText(`Grupo Puntual: orden ${n}`, width/2, height - 20);
+        
+        // Legend explanation
+        ctx.fillStyle = '#5c6874';
+        ctx.font = '8px Outfit';
+        ctx.fillText('→ Rotación   ⤏ Reflexión (σ²=e)', width/2, height - 8);
+    }
+    
+    /**
+     * Draw arrow head for Cayley graph edges
+     */
+    drawArrowHead(ctx, fromX, fromY, toX, toY, color) {
+        const headLen = 8;
+        const dx = toX - fromX;
+        const dy = toY - fromY;
+        const angle = Math.atan2(dy, dx);
+        
+        // Position arrow at 70% of the edge (not at the node)
+        const arrowX = fromX + dx * 0.6;
+        const arrowY = fromY + dy * 0.6;
+        
+        ctx.fillStyle = typeof color === 'string' ? color : 'rgba(183, 148, 246, 0.7)';
+        ctx.beginPath();
+        ctx.moveTo(arrowX, arrowY);
+        ctx.lineTo(arrowX - headLen * Math.cos(angle - Math.PI / 6), arrowY - headLen * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(arrowX - headLen * Math.cos(angle + Math.PI / 6), arrowY - headLen * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+    }
+    
+    /**
+     * Update Cayley graph to highlight current position after operation
+     */
+    updateCayleyGraphPosition(operationName) {
+        const group = WallpaperGroups[this.currentGroup];
+        if (!group.cayleyTable || typeof group.cayleyTable.table === 'string') return;
+        
+        const elements = group.cayleyTable.elements;
+        const table = group.cayleyTable.table;
+        
+        // Map operation names to Cayley table elements
+        const opMapping = {
+            'Rotación 60°': 'C₆',
+            'Rotación 90°': 'C₄',
+            'Rotación 120°': 'C₃',
+            'Rotación 180°': 'C₂',
+            'Rotación 240°': 'C₃²',
+            'Rotación 270°': 'C₄³',
+            'Rotación 300°': 'C₆⁵',
+            'Reflexión Vertical': 'σᵥ',
+            'Reflexión Horizontal': 'σₕ',
+            'Reflexión Diagonal': 'σ_d',
+            'Reflexión Anti-diagonal': 'σ_d\'',
+            'Glide Horizontal': 'gₕ',
+            'Glide Vertical': 'gᵥ'
+        };
+        
+        const cayleyElement = opMapping[operationName];
+        if (!cayleyElement) return;
+        
+        // Find current position in elements array
+        const currentIdx = elements.indexOf(this.currentCayleyNode);
+        const opIdx = elements.indexOf(cayleyElement);
+        
+        if (currentIdx !== -1 && opIdx !== -1) {
+            // Apply the operation: new position = current × operation
+            this.currentCayleyNode = table[currentIdx][opIdx];
+            // Redraw graph with new highlight
+            this.drawCayleyGraph(group, this.currentCayleyNode);
+        }
     }
     
     updateMatrixDisplay() {
@@ -355,6 +487,7 @@ class WallpaperExplorer {
      * Generate a mathematically correct pattern for the given wallpaper group.
      * 
      * CRITICAL: The pattern must have EXACTLY the symmetries of the group.
+     * All patterns are generated CENTERED on the canvas center for exact symmetry.
      * - p1: NO rotational symmetry, NO reflection
      * - p2: C2 symmetry (180°) ONLY
      * - etc.
@@ -365,10 +498,10 @@ class WallpaperExplorer {
         const group = WallpaperGroups[groupName];
         
         // Use different seeds for different groups to ensure variety
-        const seed = this.hashString(groupName + '_v2');
+        const seed = this.hashString(groupName + '_v3_centered');
         const rng = this.seededRandom(seed);
         
-        // Generate pattern with EXACT symmetries
+        // Generate pattern with EXACT symmetries centered on canvas
         let pattern;
         
         switch (groupName) {
@@ -376,10 +509,10 @@ class WallpaperExplorer {
                 pattern = this.generateP1(size, rng);
                 break;
             case 'p2':
-                pattern = this.generateP2(size, rng);
+                pattern = this.generateP2Centered(size, rng);
                 break;
             case 'pm':
-                pattern = this.generatePM(size, rng);
+                pattern = this.generatePMCentered(size, rng);
                 break;
             case 'pg':
                 pattern = this.generatePG(size, rng);
@@ -388,40 +521,40 @@ class WallpaperExplorer {
                 pattern = this.generateCM(size, rng);
                 break;
             case 'pmm':
-                pattern = this.generatePMM(size, rng);
+                pattern = this.generatePMMCentered(size, rng);
                 break;
             case 'pmg':
                 pattern = this.generatePMG(size, rng);
                 break;
             case 'pgg':
-                pattern = this.generatePGG(size, rng);
+                pattern = this.generatePGGCentered(size, rng);
                 break;
             case 'cmm':
-                pattern = this.generateCMM(size, rng);
+                pattern = this.generateCMMCentered(size, rng);
                 break;
             case 'p4':
-                pattern = this.generateP4(size, rng);
+                pattern = this.generateP4Centered(size, rng);
                 break;
             case 'p4m':
-                pattern = this.generateP4M(size, rng);
+                pattern = this.generateP4MCentered(size, rng);
                 break;
             case 'p4g':
-                pattern = this.generateP4G(size, rng);
+                pattern = this.generateP4GCentered(size, rng);
                 break;
             case 'p3':
-                pattern = this.generateP3(size, rng);
+                pattern = this.generateP3Centered(size, rng);
                 break;
             case 'p3m1':
-                pattern = this.generateP3M1(size, rng);
+                pattern = this.generateP3M1Centered(size, rng);
                 break;
             case 'p31m':
-                pattern = this.generateP31M(size, rng);
+                pattern = this.generateP31MCentered(size, rng);
                 break;
             case 'p6':
-                pattern = this.generateP6(size, rng);
+                pattern = this.generateP6Centered(size, rng);
                 break;
             case 'p6m':
-                pattern = this.generateP6M(size, rng);
+                pattern = this.generateP6MCentered(size, rng);
                 break;
             default:
                 pattern = this.generateP1(size, rng);
@@ -1098,6 +1231,639 @@ class WallpaperExplorer {
         return pattern;
     }
     
+    /**
+     * p2: 180° rotation centered - pattern symmetric under 180° rotation around canvas center
+     */
+    generateP2Centered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        // Create random asymmetric elements in one half
+        const elements = [];
+        const numElements = 4 + Math.floor(rng() * 3);
+        
+        for (let i = 0; i < numElements; i++) {
+            elements.push({
+                x: rng() * size * 0.4,  // Left half
+                y: rng() * size,
+                sigma: 15 + rng() * 25,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                // Original elements
+                for (const el of elements) {
+                    const dx = x - el.x;
+                    const dy = y - el.y;
+                    value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                }
+                
+                // 180° rotated elements (around center)
+                for (const el of elements) {
+                    const rx = 2*cx - el.x;
+                    const ry = 2*cy - el.y;
+                    const dx = x - rx;
+                    const dy = y - ry;
+                    value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * pm: Vertical reflection centered - pattern symmetric under vertical reflection
+     */
+    generatePMCentered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 5 + Math.floor(rng() * 3);
+        
+        for (let i = 0; i < numElements; i++) {
+            elements.push({
+                x: rng() * size * 0.5,  // Left half only
+                y: rng() * size,
+                sigma: 15 + rng() * 25,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    // Original
+                    const dx1 = x - el.x;
+                    const dy1 = y - el.y;
+                    value += el.amplitude * Math.exp(-(dx1*dx1 + dy1*dy1)/(2*el.sigma*el.sigma));
+                    
+                    // Reflected across vertical center
+                    const dx2 = x - (2*cx - el.x);
+                    const dy2 = y - el.y;
+                    value += el.amplitude * Math.exp(-(dx2*dx2 + dy2*dy2)/(2*el.sigma*el.sigma));
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * pmm: Both reflections centered
+     */
+    generatePMMCentered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 4 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            elements.push({
+                x: rng() * size * 0.5,
+                y: rng() * size * 0.5,
+                sigma: 15 + rng() * 20,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    // All 4 quadrants
+                    const positions = [
+                        [el.x, el.y],
+                        [2*cx - el.x, el.y],
+                        [el.x, 2*cy - el.y],
+                        [2*cx - el.x, 2*cy - el.y]
+                    ];
+                    
+                    for (const [ex, ey] of positions) {
+                        const dx = x - ex;
+                        const dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * pgg: Two perpendicular glides centered
+     */
+    generatePGGCentered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 4 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            elements.push({
+                x: rng() * size * 0.5,
+                y: rng() * size * 0.5,
+                sigma: 15 + rng() * 20,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    // Original
+                    let dx = x - el.x;
+                    let dy = y - el.y;
+                    value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    
+                    // 180° rotation (from the two glides)
+                    dx = x - (2*cx - el.x);
+                    dy = y - (2*cy - el.y);
+                    value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * cmm: Centered cell with reflections
+     */
+    generateCMMCentered(size, rng) {
+        return this.generatePMMCentered(size, rng);
+    }
+    
+    /**
+     * p4: 90° rotation centered - EXACT 4-fold symmetry
+     */
+    generateP4Centered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        // Create elements in first quadrant only
+        const elements = [];
+        const numElements = 3 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            // Place in first quadrant (top-right from center)
+            const r = 30 + rng() * (size / 3);
+            const theta = rng() * Math.PI / 2;  // 0 to 90 degrees
+            elements.push({
+                x: cx + r * Math.cos(theta),
+                y: cy - r * Math.sin(theta),  // negative because y goes down
+                sigma: 12 + rng() * 18,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    // Apply 4-fold rotation
+                    for (let rot = 0; rot < 4; rot++) {
+                        const angle = rot * Math.PI / 2;
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        
+                        // Rotate element position around center
+                        const relX = el.x - cx;
+                        const relY = el.y - cy;
+                        const ex = cx + relX * cos - relY * sin;
+                        const ey = cy + relX * sin + relY * cos;
+                        
+                        const dx = x - ex;
+                        const dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p4m: 90° rotation + 4 reflections centered
+     */
+    generateP4MCentered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 2 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            // Place in 1/8 sector
+            const r = 30 + rng() * (size / 3);
+            const theta = rng() * Math.PI / 4;  // 0 to 45 degrees
+            elements.push({
+                x: cx + r * Math.cos(theta),
+                y: cy - r * Math.sin(theta),
+                sigma: 12 + rng() * 18,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    // Apply 8-fold symmetry (4 rotations + reflections)
+                    for (let rot = 0; rot < 4; rot++) {
+                        const angle = rot * Math.PI / 2;
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        
+                        const relX = el.x - cx;
+                        const relY = el.y - cy;
+                        
+                        // Original rotation
+                        let ex = cx + relX * cos - relY * sin;
+                        let ey = cy + relX * sin + relY * cos;
+                        let dx = x - ex;
+                        let dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                        
+                        // Reflected rotation (across diagonal)
+                        ex = cx + relY * cos - relX * sin;
+                        ey = cy + relY * sin + relX * cos;
+                        dx = x - ex;
+                        dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p4g: 90° rotation + diagonal reflections centered
+     */
+    generateP4GCentered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 2 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            const r = 30 + rng() * (size / 3);
+            const theta = rng() * Math.PI / 4 + Math.PI/8;  // 22.5 to 67.5 degrees
+            elements.push({
+                x: cx + r * Math.cos(theta),
+                y: cy - r * Math.sin(theta),
+                sigma: 12 + rng() * 18,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    for (let rot = 0; rot < 4; rot++) {
+                        const angle = rot * Math.PI / 2;
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        
+                        const relX = el.x - cx;
+                        const relY = el.y - cy;
+                        
+                        // Apply rotation
+                        let ex = cx + relX * cos - relY * sin;
+                        let ey = cy + relX * sin + relY * cos;
+                        let dx = x - ex;
+                        let dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                        
+                        // Diagonal reflection (x <-> y relative to center)
+                        ex = cx + relY * cos - relX * sin;
+                        ey = cy + relY * sin + relX * cos;
+                        dx = x - ex;
+                        dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p3: 120° rotation centered - EXACT 3-fold symmetry
+     */
+    generateP3Centered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 3 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            const r = 30 + rng() * (size / 3);
+            const theta = rng() * 2 * Math.PI / 3;  // First 120 degree sector
+            elements.push({
+                x: cx + r * Math.cos(theta),
+                y: cy - r * Math.sin(theta),
+                sigma: 15 + rng() * 20,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    for (let rot = 0; rot < 3; rot++) {
+                        const angle = rot * 2 * Math.PI / 3;
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        
+                        const relX = el.x - cx;
+                        const relY = el.y - cy;
+                        const ex = cx + relX * cos - relY * sin;
+                        const ey = cy + relX * sin + relY * cos;
+                        
+                        const dx = x - ex;
+                        const dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p3m1: 120° rotation + 3 reflections through rotation centers
+     */
+    generateP3M1Centered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 2 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            const r = 30 + rng() * (size / 3);
+            const theta = rng() * Math.PI / 3;  // 60 degree sector
+            elements.push({
+                x: cx + r * Math.cos(theta),
+                y: cy - r * Math.sin(theta),
+                sigma: 15 + rng() * 20,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    for (let rot = 0; rot < 3; rot++) {
+                        const angle = rot * 2 * Math.PI / 3;
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        
+                        const relX = el.x - cx;
+                        const relY = el.y - cy;
+                        
+                        // Original rotation
+                        let ex = cx + relX * cos - relY * sin;
+                        let ey = cy + relX * sin + relY * cos;
+                        let dx = x - ex;
+                        let dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                        
+                        // Reflection (across vertical through center)
+                        ex = cx - (relX * cos - relY * sin);
+                        ey = cy + relX * sin + relY * cos;
+                        dx = x - ex;
+                        dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p31m: 120° rotation + 3 reflections between rotation centers
+     */
+    generateP31MCentered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 2 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            const r = 30 + rng() * (size / 3);
+            const theta = rng() * Math.PI / 3;
+            elements.push({
+                x: cx + r * Math.cos(theta),
+                y: cy - r * Math.sin(theta),
+                sigma: 15 + rng() * 20,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    for (let rot = 0; rot < 3; rot++) {
+                        const angle = rot * 2 * Math.PI / 3;
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        
+                        const relX = el.x - cx;
+                        const relY = el.y - cy;
+                        
+                        // Original rotation
+                        let ex = cx + relX * cos - relY * sin;
+                        let ey = cy + relX * sin + relY * cos;
+                        let dx = x - ex;
+                        let dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                        
+                        // Horizontal reflection
+                        ex = cx + relX * cos - relY * sin;
+                        ey = cy - (relX * sin + relY * cos);
+                        dx = x - ex;
+                        dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p6: 60° rotation centered - EXACT 6-fold symmetry
+     */
+    generateP6Centered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 2 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            const r = 30 + rng() * (size / 3);
+            const theta = rng() * Math.PI / 3;  // First 60 degree sector
+            elements.push({
+                x: cx + r * Math.cos(theta),
+                y: cy - r * Math.sin(theta),
+                sigma: 12 + rng() * 18,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    for (let rot = 0; rot < 6; rot++) {
+                        const angle = rot * Math.PI / 3;
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        
+                        const relX = el.x - cx;
+                        const relY = el.y - cy;
+                        const ex = cx + relX * cos - relY * sin;
+                        const ey = cy + relX * sin + relY * cos;
+                        
+                        const dx = x - ex;
+                        const dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
+    /**
+     * p6m: 60° rotation + 6 reflections (maximum symmetry)
+     */
+    generateP6MCentered(size, rng) {
+        const pattern = new Float32Array(size * size);
+        const cx = (size - 1) / 2;
+        const cy = (size - 1) / 2;
+        
+        const elements = [];
+        const numElements = 2 + Math.floor(rng() * 2);
+        
+        for (let i = 0; i < numElements; i++) {
+            const r = 30 + rng() * (size / 3);
+            const theta = rng() * Math.PI / 6;  // First 30 degree sector (1/12 of circle)
+            elements.push({
+                x: cx + r * Math.cos(theta),
+                y: cy - r * Math.sin(theta),
+                sigma: 12 + rng() * 18,
+                amplitude: 0.3 + rng() * 0.7
+            });
+        }
+        
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                let value = 0;
+                
+                for (const el of elements) {
+                    for (let rot = 0; rot < 6; rot++) {
+                        const angle = rot * Math.PI / 3;
+                        const cos = Math.cos(angle);
+                        const sin = Math.sin(angle);
+                        
+                        const relX = el.x - cx;
+                        const relY = el.y - cy;
+                        
+                        // Original rotation
+                        let ex = cx + relX * cos - relY * sin;
+                        let ey = cy + relX * sin + relY * cos;
+                        let dx = x - ex;
+                        let dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                        
+                        // Reflection across the rotation axis
+                        ex = cx + relX * cos + relY * sin;
+                        ey = cy + relX * sin - relY * cos;
+                        dx = x - ex;
+                        dy = y - ey;
+                        value += el.amplitude * Math.exp(-(dx*dx + dy*dy)/(2*el.sigma*el.sigma));
+                    }
+                }
+                
+                pattern[y * size + x] = value;
+            }
+        }
+        
+        return this.normalizePattern(pattern);
+    }
+    
     hashString(str) {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
@@ -1209,6 +1975,9 @@ class WallpaperExplorer {
         
         // Update difference visualization
         this.updateDifference();
+        
+        // Update Cayley graph to show current position
+        this.updateCayleyGraphPosition(`${opName} ${opParams}`);
     }
     
     translateAxis(axis) {
@@ -1284,6 +2053,7 @@ class WallpaperExplorer {
     reset() {
         this.operations = [];
         this.currentMatrix = SymmetryOps.identity();
+        this.currentCayleyNode = 'e';  // Reset to identity
         
         if (this.originalImageData) {
             this.transformedImageData = this.originalImageData.slice();
@@ -1298,6 +2068,10 @@ class WallpaperExplorer {
         
         this.updateHistory();
         this.updateMatrixDisplay();
+        
+        // Redraw Cayley graph with identity highlighted
+        const group = WallpaperGroups[this.currentGroup];
+        this.drawCayleyGraph(group, 'e');
     }
 }
 

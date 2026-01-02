@@ -194,13 +194,14 @@ const ImageTransform = {
     },
     
     /**
-     * General rotation with bilinear interpolation
-     * Used for non-90° angles (60°, 120°, etc.)
+     * General rotation with high-precision nearest neighbor
+     * For patterns with exact symmetry, this preserves the mathematical relationship
      */
     _rotateGeneral(imageData, angleDeg, width, height) {
         const rad = (angleDeg * Math.PI) / 180;
         const cos = Math.cos(rad);
         const sin = Math.sin(rad);
+        // Use exact center for symmetry preservation
         const centerX = (width - 1) / 2;
         const centerY = (height - 1) / 2;
         
@@ -212,47 +213,32 @@ const ImageTransform = {
                 const dx = x - centerX;
                 const dy = y - centerY;
                 
-                // Inverse rotate to find source
+                // Inverse rotate to find source (exact formula)
                 const srcX = cos * dx + sin * dy + centerX;
                 const srcY = -sin * dx + cos * dy + centerY;
                 
                 const destIdx = (y * width + x) * 4;
                 
-                // Bilinear interpolation
-                const x0 = Math.floor(srcX);
-                const y0 = Math.floor(srcY);
-                const x1 = x0 + 1;
-                const y1 = y0 + 1;
+                // Use nearest neighbor for exact pixel mapping
+                // This preserves symmetry for patterns generated with the same center
+                const nearX = Math.round(srcX);
+                const nearY = Math.round(srcY);
                 
-                if (x0 >= 0 && x1 < width && y0 >= 0 && y1 < height) {
-                    const fx = srcX - x0;
-                    const fy = srcY - y0;
-                    
-                    for (let c = 0; c < 4; c++) {
-                        const v00 = imageData[(y0 * width + x0) * 4 + c];
-                        const v10 = imageData[(y0 * width + x1) * 4 + c];
-                        const v01 = imageData[(y1 * width + x0) * 4 + c];
-                        const v11 = imageData[(y1 * width + x1) * 4 + c];
-                        
-                        const v = v00 * (1 - fx) * (1 - fy) +
-                                  v10 * fx * (1 - fy) +
-                                  v01 * (1 - fx) * fy +
-                                  v11 * fx * fy;
-                        
-                        newData[destIdx + c] = Math.round(v);
-                    }
-                } else if (srcX >= 0 && srcX < width && srcY >= 0 && srcY < height) {
-                    // Edge case - use nearest neighbor
-                    const nearX = Math.round(srcX);
-                    const nearY = Math.round(srcY);
+                if (nearX >= 0 && nearX < width && nearY >= 0 && nearY < height) {
                     const srcIdx = (nearY * width + nearX) * 4;
                     newData[destIdx] = imageData[srcIdx];
                     newData[destIdx + 1] = imageData[srcIdx + 1];
                     newData[destIdx + 2] = imageData[srcIdx + 2];
                     newData[destIdx + 3] = imageData[srcIdx + 3];
                 } else {
-                    // Out of bounds - transparent
-                    newData[destIdx + 3] = 0;
+                    // Out of bounds - use edge value for continuity
+                    const clampX = Math.max(0, Math.min(width - 1, nearX));
+                    const clampY = Math.max(0, Math.min(height - 1, nearY));
+                    const srcIdx = (clampY * width + clampX) * 4;
+                    newData[destIdx] = imageData[srcIdx];
+                    newData[destIdx + 1] = imageData[srcIdx + 1];
+                    newData[destIdx + 2] = imageData[srcIdx + 2];
+                    newData[destIdx + 3] = imageData[srcIdx + 3];
                 }
             }
         }
