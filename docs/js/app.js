@@ -688,59 +688,25 @@ class WallpaperExplorer {
         // Format: "Rotación 120°" or "Reflexión Vertical" etc.
         const opName = operationName.trim();
         
-        // Build dynamic mapping based on group's rotation order
-        // For dihedral groups with R, F notation vs cyclic groups with Cn notation
-        const rotOrder = group.rotationOrder;
-        const hasDihedralNotation = elements.includes('R') || elements.includes('F');
-        
-        let opMapping = {};
-        
-        if (hasDihedralNotation) {
-            // Dihedral notation: R, R², R³, etc.
-            // Map rotations based on order
-            if (rotOrder === 2) {
-                // D₂: R = 180°
-                opMapping['Rotación 180°'] = ['R'];
-            } else if (rotOrder === 3) {
-                // D₃: R = 120°
-                opMapping['Rotación 120°'] = ['R'];
-                opMapping['Rotación 240°'] = ['R²'];
-            } else if (rotOrder === 4) {
-                // D₄: R = 90°
-                opMapping['Rotación 90°'] = ['R'];
-                opMapping['Rotación 180°'] = ['R²'];
-                opMapping['Rotación 270°'] = ['R³'];
-            } else if (rotOrder === 6) {
-                // D₆: R = 60°
-                opMapping['Rotación 60°'] = ['R'];
-                opMapping['Rotación 120°'] = ['R²'];
-                opMapping['Rotación 180°'] = ['R³'];
-                opMapping['Rotación 240°'] = ['R⁴'];
-                opMapping['Rotación 300°'] = ['R⁵'];
-            }
-            // All reflections map to F (first reflection)
-            opMapping['Reflexión Vertical'] = ['F'];
-            opMapping['Reflexión Horizontal'] = ['FR', 'FR²', 'F'];
-            opMapping['Reflexión Diagonal'] = ['FR', 'FR³', 'F'];
-            opMapping['Reflexión Anti-diagonal'] = ['FR²', 'FR', 'F'];
-        } else {
-            // Cyclic notation: C₃, C₄, C₆, etc.
-            opMapping = {
-                'Rotación 60°': ['C₆'],
-                'Rotación 90°': ['C₄'],
-                'Rotación 120°': ['C₃'],
-                'Rotación 180°': ['C₂'],
-                'Rotación 240°': ['C₃²'],
-                'Rotación 270°': ['C₄³'],
-                'Rotación 300°': ['C₆⁵'],
-                'Reflexión Vertical': ['σᵥ', 'σᵥ(0°)', 'σ'],
-                'Reflexión Horizontal': ['σₕ', 'σₕ(0°)', 'σ'],
-                'Reflexión Diagonal': ['σ_d', 'σ_d\''],
-                'Reflexión Anti-diagonal': ['σ_d\'', 'σ_d'],
-                'Glide Horizontal': ['gₕ', 'g'],
-                'Glide Vertical': ['gᵥ', 'g']
-            };
-        }
+        // Mapeo unificado: todas las tablas usan notación Cn + σ
+        const opMapping = {
+            // Rotaciones
+            'Rotación 60°': ['C₆'],
+            'Rotación 90°': ['C₄'],
+            'Rotación 120°': ['C₃'],
+            'Rotación 180°': ['C₂'],
+            'Rotación 240°': ['C₃²'],
+            'Rotación 270°': ['C₄³'],
+            'Rotación 300°': ['C₆⁵'],
+            // Reflexiones - buscar variantes
+            'Reflexión Vertical': ['σᵥ', 'σ₁', 'σ₄'],  // σᵥ o σ₁ (0°) o σ₄ (90°)
+            'Reflexión Horizontal': ['σₕ', 'σ₁', 'σ₄'],
+            'Reflexión Diagonal': ['σ_d', 'σ₂', 'σ_d\''],
+            'Reflexión Anti-diagonal': ['σ_d\'', 'σ₃', 'σ_d'],
+            // Glides
+            'Glide Horizontal': ['gₕ', 'g'],
+            'Glide Vertical': ['gᵥ', 'g']
+        };
         
         const possibleElements = opMapping[opName];
         if (!possibleElements) {
