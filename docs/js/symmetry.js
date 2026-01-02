@@ -642,19 +642,20 @@ const WallpaperGroups = {
             { name: 'C₂ = σᵥσₕ', ops: [{type: 'rotate', angle: 180}] }
         ],
         invalidSymmetries: ['C3', 'C4', 'C6', 'g'],
+        // D₂: R = rotación 180°, F = reflexión vertical, FR = reflexión horizontal
         cayleyTable: {
-            elements: ['e', 'σᵥ', 'σₕ', 'C₂'],
+            elements: ['e', 'R', 'F', 'FR'],
             table: [
-                ['e', 'σᵥ', 'σₕ', 'C₂'],
-                ['σᵥ', 'e', 'C₂', 'σₕ'],
-                ['σₕ', 'C₂', 'e', 'σᵥ'],
-                ['C₂', 'σₕ', 'σᵥ', 'e']
+                ['e', 'R', 'F', 'FR'],
+                ['R', 'e', 'FR', 'F'],
+                ['F', 'FR', 'e', 'R'],
+                ['FR', 'F', 'R', 'e']
             ]
         },
         explanation: `
-            El grupo pmm tiene dos ejes de reflexión perpendiculares.
-            IMPORTANTE: σᵥ ∘ σₕ = C₂ (dos reflexiones perpendiculares = rotación 180°)
-            Esto es un teorema fundamental de la teoría de grupos.
+            El grupo pmm tiene dos ejes de reflexión perpendiculares (D₂).
+            R = rotación 180°, F = reflexión, FR = segunda reflexión
+            IMPORTANTE: F × FR = R (dos reflexiones perpendiculares = rotación 180°)
         `
     },
     pmg: {
@@ -673,14 +674,14 @@ const WallpaperGroups = {
             { name: 'C₂ (180°)', ops: [{type: 'rotate', angle: 180}] }
         ],
         invalidSymmetries: ['C3', 'C4', 'C6', 'σₕ', 'gₕ (solo)'],
-        // Operaciones puntuales que dan 100%: e, σᵥ, C₂
-        // σᵥ ∘ C₂ = σₕ pero en pmg la "σₕ" es glide → no da 100%
+        // D₂ incompleto: F = reflexión vertical, R = rotación 180°
+        // FR no es reflexión pura sino glide en pmg
         cayleyTable: {
-            elements: ['e', 'σᵥ', 'C₂'],
+            elements: ['e', 'R', 'F'],
             table: [
-                ['e', 'σᵥ', 'C₂'],
-                ['σᵥ', 'e', '(gₕ)'],
-                ['C₂', '(gₕ)', 'e']
+                ['e', 'R', 'F'],
+                ['R', 'e', '(g)'],
+                ['F', '(g)', 'e']
             ]
         },
         explanation: `
@@ -734,17 +735,18 @@ const WallpaperGroups = {
             { name: 'C₂', ops: [{type: 'rotate', angle: 180}] }
         ],
         invalidSymmetries: ['C3', 'C4', 'C6'],
+        // D₂: R = rotación 180°, F = reflexión vertical, FR = reflexión horizontal
         cayleyTable: {
-            elements: ['e', 'σᵥ', 'σₕ', 'C₂'],
+            elements: ['e', 'R', 'F', 'FR'],
             table: [
-                ['e', 'σᵥ', 'σₕ', 'C₂'],
-                ['σᵥ', 'e', 'C₂', 'σₕ'],
-                ['σₕ', 'C₂', 'e', 'σᵥ'],
-                ['C₂', 'σₕ', 'σᵥ', 'e']
+                ['e', 'R', 'F', 'FR'],
+                ['R', 'e', 'FR', 'F'],
+                ['F', 'FR', 'e', 'R'],
+                ['FR', 'F', 'R', 'e']
             ]
         },
         explanation: `
-            Como pmm pero con celda centrada.
+            Como pmm pero con celda centrada (D₂).
             Tiene reflexiones perpendiculares Y glides.
         `
     },
@@ -802,17 +804,19 @@ const WallpaperGroups = {
             { name: 'σ_d\'', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
         ],
         invalidSymmetries: ['C3', 'C6'],
+        // D₄: R = rotación 90°, F = reflexión
+        // Elementos: e, R, R², R³, F, FR, FR², FR³
         cayleyTable: {
-            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σᵥ', 'σₕ', 'σ_d', 'σ_d\''],
+            elements: ['e', 'R', 'R²', 'R³', 'F', 'FR', 'FR²', 'FR³'],
             table: [
-                ['e', 'C₄', 'C₂', 'C₄³', 'σᵥ', 'σₕ', 'σ_d', 'σ_d\''],
-                ['C₄', 'C₂', 'C₄³', 'e', 'σ_d\'', 'σ_d', 'σᵥ', 'σₕ'],
-                ['C₂', 'C₄³', 'e', 'C₄', 'σₕ', 'σᵥ', 'σ_d\'', 'σ_d'],
-                ['C₄³', 'e', 'C₄', 'C₂', 'σ_d', 'σ_d\'', 'σₕ', 'σᵥ'],
-                ['σᵥ', 'σ_d', 'σₕ', 'σ_d\'', 'e', 'C₂', 'C₄', 'C₄³'],
-                ['σₕ', 'σ_d\'', 'σᵥ', 'σ_d', 'C₂', 'e', 'C₄³', 'C₄'],
-                ['σ_d', 'σₕ', 'σ_d\'', 'σᵥ', 'C₄³', 'C₄', 'e', 'C₂'],
-                ['σ_d\'', 'σᵥ', 'σ_d', 'σₕ', 'C₄', 'C₄³', 'C₂', 'e']
+                ['e', 'R', 'R²', 'R³', 'F', 'FR', 'FR²', 'FR³'],
+                ['R', 'R²', 'R³', 'e', 'FR³', 'F', 'FR', 'FR²'],
+                ['R²', 'R³', 'e', 'R', 'FR²', 'FR³', 'F', 'FR'],
+                ['R³', 'e', 'R', 'R²', 'FR', 'FR²', 'FR³', 'F'],
+                ['F', 'FR', 'FR²', 'FR³', 'e', 'R', 'R²', 'R³'],
+                ['FR', 'FR²', 'FR³', 'F', 'R³', 'e', 'R', 'R²'],
+                ['FR²', 'FR³', 'F', 'FR', 'R²', 'R³', 'e', 'R'],
+                ['FR³', 'F', 'FR', 'FR²', 'R', 'R²', 'R³', 'e']
             ]
         },
         explanation: `
@@ -840,17 +844,17 @@ const WallpaperGroups = {
             { name: 'σ_d\' (anti-diag)', ops: [{type: 'reflect', axis: 'antidiagonal'}] }
         ],
         invalidSymmetries: ['C3', 'C6', 'σᵥ', 'σₕ', 'gᵥ (solo)', 'gₕ (solo)'],
-        // Grupo puntual efectivo: solo rotaciones + reflexiones diagonales
-        // σᵥ y σₕ son glides en p4g → no dan 100%
+        // D₄ incompleto: R = rotación 90°, F = reflexión diagonal
+        // FR y FR³ son glides en p4g (reflexiones en ejes axiales)
         cayleyTable: {
-            elements: ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\''],
+            elements: ['e', 'R', 'R²', 'R³', 'F', 'FR²'],
             table: [
-                ['e', 'C₄', 'C₂', 'C₄³', 'σ_d', 'σ_d\''],
-                ['C₄', 'C₂', 'C₄³', 'e', '(gₕ)', '(gᵥ)'],
-                ['C₂', 'C₄³', 'e', 'C₄', 'σ_d\'', 'σ_d'],
-                ['C₄³', 'e', 'C₄', 'C₂', '(gᵥ)', '(gₕ)'],
-                ['σ_d', '(gᵥ)', 'σ_d\'', '(gₕ)', 'e', 'C₂'],
-                ['σ_d\'', '(gₕ)', 'σ_d', '(gᵥ)', 'C₂', 'e']
+                ['e', 'R', 'R²', 'R³', 'F', 'FR²'],
+                ['R', 'R²', 'R³', 'e', '(g)', '(g)'],
+                ['R²', 'R³', 'e', 'R', 'FR²', 'F'],
+                ['R³', 'e', 'R', 'R²', '(g)', '(g)'],
+                ['F', '(g)', 'FR²', '(g)', 'e', 'R²'],
+                ['FR²', '(g)', 'F', '(g)', 'R²', 'e']
             ]
         },
         explanation: `
@@ -906,15 +910,16 @@ const WallpaperGroups = {
             { name: 'σᵥ (reflexión vertical)', ops: [{type: 'reflect', axis: 'vertical'}] }
         ],
         invalidSymmetries: ['C2', 'C4', 'C6'],
+        // D₃: R = rotación 120°, F = reflexión
         cayleyTable: {
-            elements: ['e', 'C₃', 'C₃²', 'σᵥ(0°)', 'σᵥ(60°)', 'σᵥ(120°)'],
+            elements: ['e', 'R', 'R²', 'F', 'FR', 'FR²'],
             table: [
-                ['e', 'C₃', 'C₃²', 'σᵥ(0°)', 'σᵥ(60°)', 'σᵥ(120°)'],
-                ['C₃', 'C₃²', 'e', 'σᵥ(120°)', 'σᵥ(0°)', 'σᵥ(60°)'],
-                ['C₃²', 'e', 'C₃', 'σᵥ(60°)', 'σᵥ(120°)', 'σᵥ(0°)'],
-                ['σᵥ(0°)', 'σᵥ(60°)', 'σᵥ(120°)', 'e', 'C₃', 'C₃²'],
-                ['σᵥ(60°)', 'σᵥ(120°)', 'σᵥ(0°)', 'C₃²', 'e', 'C₃'],
-                ['σᵥ(120°)', 'σᵥ(0°)', 'σᵥ(60°)', 'C₃', 'C₃²', 'e']
+                ['e', 'R', 'R²', 'F', 'FR', 'FR²'],
+                ['R', 'R²', 'e', 'FR²', 'F', 'FR'],
+                ['R²', 'e', 'R', 'FR', 'FR²', 'F'],
+                ['F', 'FR', 'FR²', 'e', 'R', 'R²'],
+                ['FR', 'FR²', 'F', 'R²', 'e', 'R'],
+                ['FR²', 'F', 'FR', 'R', 'R²', 'e']
             ]
         },
         explanation: `
@@ -940,15 +945,16 @@ const WallpaperGroups = {
             { name: 'σₕ (reflexión horizontal)', ops: [{type: 'reflect', axis: 'horizontal'}] }
         ],
         invalidSymmetries: ['C2', 'C4', 'C6'],
+        // D₃: R = rotación 120°, F = reflexión
         cayleyTable: {
-            elements: ['e', 'C₃', 'C₃²', 'σₕ(0°)', 'σₕ(60°)', 'σₕ(120°)'],
+            elements: ['e', 'R', 'R²', 'F', 'FR', 'FR²'],
             table: [
-                ['e', 'C₃', 'C₃²', 'σₕ(0°)', 'σₕ(60°)', 'σₕ(120°)'],
-                ['C₃', 'C₃²', 'e', 'σₕ(120°)', 'σₕ(0°)', 'σₕ(60°)'],
-                ['C₃²', 'e', 'C₃', 'σₕ(60°)', 'σₕ(120°)', 'σₕ(0°)'],
-                ['σₕ(0°)', 'σₕ(60°)', 'σₕ(120°)', 'e', 'C₃', 'C₃²'],
-                ['σₕ(60°)', 'σₕ(120°)', 'σₕ(0°)', 'C₃²', 'e', 'C₃'],
-                ['σₕ(120°)', 'σₕ(0°)', 'σₕ(60°)', 'C₃', 'C₃²', 'e']
+                ['e', 'R', 'R²', 'F', 'FR', 'FR²'],
+                ['R', 'R²', 'e', 'FR²', 'F', 'FR'],
+                ['R²', 'e', 'R', 'FR', 'FR²', 'F'],
+                ['F', 'FR', 'FR²', 'e', 'R', 'R²'],
+                ['FR', 'FR²', 'F', 'R²', 'e', 'R'],
+                ['FR²', 'F', 'FR', 'R', 'R²', 'e']
             ]
         },
         explanation: `
@@ -1016,36 +1022,37 @@ const WallpaperGroups = {
         ],
         invalidSymmetries: ['C4'],
         // D₆: 6 rotaciones + 6 reflexiones
-        // Rotaciones: e, C₆, C₃=C₆², C₂=C₆³, C₃²=C₆⁴, C₆⁵
-        // Reflexiones: σₕ(0°), σ₃₀(30°), σ₆₀(60°), σᵥ(90°), σ₁₂₀(120°), σ₁₅₀(150°)
-        // Reglas: Rⁱ×Rʲ=R^(i+j mod 6), σₖ×σₗ=R^(l-k mod 6), Rⁱ×σₖ=σ_(k+i mod 6), σₖ×Rⁱ=σ_(k-i mod 6)
+        // Notación estándar de álgebra: R = rotación 60°, F = reflexión
+        // Rotaciones: e, R, R², R³, R⁴, R⁵
+        // Reflexiones: F, FR, FR², FR³, FR⁴, FR⁵
+        // Reglas: Rⁱ×Rʲ=R^(i+j mod 6), F²=e, F×R=R⁻¹×F
         cayleyTable: {
-            elements: ['e', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'σₕ', 'σ₃₀', 'σ₆₀', 'σᵥ', 'σ₁₂₀', 'σ₁₅₀'],
+            elements: ['e', 'R', 'R²', 'R³', 'R⁴', 'R⁵', 'F', 'FR', 'FR²', 'FR³', 'FR⁴', 'FR⁵'],
             table: [
                 // e
-                ['e', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'σₕ', 'σ₃₀', 'σ₆₀', 'σᵥ', 'σ₁₂₀', 'σ₁₅₀'],
-                // C₆
-                ['C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'e', 'σ₃₀', 'σ₆₀', 'σᵥ', 'σ₁₂₀', 'σ₁₅₀', 'σₕ'],
-                // C₃
-                ['C₃', 'C₂', 'C₃²', 'C₆⁵', 'e', 'C₆', 'σ₆₀', 'σᵥ', 'σ₁₂₀', 'σ₁₅₀', 'σₕ', 'σ₃₀'],
-                // C₂
-                ['C₂', 'C₃²', 'C₆⁵', 'e', 'C₆', 'C₃', 'σᵥ', 'σ₁₂₀', 'σ₁₅₀', 'σₕ', 'σ₃₀', 'σ₆₀'],
-                // C₃²
-                ['C₃²', 'C₆⁵', 'e', 'C₆', 'C₃', 'C₂', 'σ₁₂₀', 'σ₁₅₀', 'σₕ', 'σ₃₀', 'σ₆₀', 'σᵥ'],
-                // C₆⁵
-                ['C₆⁵', 'e', 'C₆', 'C₃', 'C₂', 'C₃²', 'σ₁₅₀', 'σₕ', 'σ₃₀', 'σ₆₀', 'σᵥ', 'σ₁₂₀'],
-                // σₕ (0°)
-                ['σₕ', 'σ₁₅₀', 'σ₁₂₀', 'σᵥ', 'σ₆₀', 'σ₃₀', 'e', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵'],
-                // σ₃₀ (30°)
-                ['σ₃₀', 'σₕ', 'σ₁₅₀', 'σ₁₂₀', 'σᵥ', 'σ₆₀', 'C₆⁵', 'e', 'C₆', 'C₃', 'C₂', 'C₃²'],
-                // σ₆₀ (60°)
-                ['σ₆₀', 'σ₃₀', 'σₕ', 'σ₁₅₀', 'σ₁₂₀', 'σᵥ', 'C₃²', 'C₆⁵', 'e', 'C₆', 'C₃', 'C₂'],
-                // σᵥ (90°)
-                ['σᵥ', 'σ₆₀', 'σ₃₀', 'σₕ', 'σ₁₅₀', 'σ₁₂₀', 'C₂', 'C₃²', 'C₆⁵', 'e', 'C₆', 'C₃'],
-                // σ₁₂₀ (120°)
-                ['σ₁₂₀', 'σᵥ', 'σ₆₀', 'σ₃₀', 'σₕ', 'σ₁₅₀', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'e', 'C₆'],
-                // σ₁₅₀ (150°)
-                ['σ₁₅₀', 'σ₁₂₀', 'σᵥ', 'σ₆₀', 'σ₃₀', 'σₕ', 'C₆', 'C₃', 'C₂', 'C₃²', 'C₆⁵', 'e']
+                ['e', 'R', 'R²', 'R³', 'R⁴', 'R⁵', 'F', 'FR', 'FR²', 'FR³', 'FR⁴', 'FR⁵'],
+                // R
+                ['R', 'R²', 'R³', 'R⁴', 'R⁵', 'e', 'FR⁵', 'F', 'FR', 'FR²', 'FR³', 'FR⁴'],
+                // R²
+                ['R²', 'R³', 'R⁴', 'R⁵', 'e', 'R', 'FR⁴', 'FR⁵', 'F', 'FR', 'FR²', 'FR³'],
+                // R³
+                ['R³', 'R⁴', 'R⁵', 'e', 'R', 'R²', 'FR³', 'FR⁴', 'FR⁵', 'F', 'FR', 'FR²'],
+                // R⁴
+                ['R⁴', 'R⁵', 'e', 'R', 'R²', 'R³', 'FR²', 'FR³', 'FR⁴', 'FR⁵', 'F', 'FR'],
+                // R⁵
+                ['R⁵', 'e', 'R', 'R²', 'R³', 'R⁴', 'FR', 'FR²', 'FR³', 'FR⁴', 'FR⁵', 'F'],
+                // F
+                ['F', 'FR', 'FR²', 'FR³', 'FR⁴', 'FR⁵', 'e', 'R', 'R²', 'R³', 'R⁴', 'R⁵'],
+                // FR
+                ['FR', 'FR²', 'FR³', 'FR⁴', 'FR⁵', 'F', 'R⁵', 'e', 'R', 'R²', 'R³', 'R⁴'],
+                // FR²
+                ['FR²', 'FR³', 'FR⁴', 'FR⁵', 'F', 'FR', 'R⁴', 'R⁵', 'e', 'R', 'R²', 'R³'],
+                // FR³
+                ['FR³', 'FR⁴', 'FR⁵', 'F', 'FR', 'FR²', 'R³', 'R⁴', 'R⁵', 'e', 'R', 'R²'],
+                // FR⁴
+                ['FR⁴', 'FR⁵', 'F', 'FR', 'FR²', 'FR³', 'R²', 'R³', 'R⁴', 'R⁵', 'e', 'R'],
+                // FR⁵
+                ['FR⁵', 'F', 'FR', 'FR²', 'FR³', 'FR⁴', 'R', 'R²', 'R³', 'R⁴', 'R⁵', 'e']
             ]
         },
         explanation: `
