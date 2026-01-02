@@ -6,7 +6,7 @@ Technical documentation for the Crystallographic Pattern Generator.
 
 ## 🎮 Interactive Demo
 
-**[Launch Interactive Symmetry Explorer →](https://khabalghoul.github.io/c17/)**
+**[Launch Interactive Symmetry Explorer →](https://cocuco-co.github.io/c17/)**
 
 Explore the 17 wallpaper groups interactively:
 - Apply symmetry operations (rotations, reflections, glides, translations)

@@ -194,7 +194,7 @@ Input: [B, 3, 256, 256] → Encoder → Latent [B, 64] → Decoder → Output: [
 
 ## Interactive Visualization
 
-**🎮 [Try the Interactive Demo](https://khabalghoul.github.io/c17/)** - Explore the 17 wallpaper groups with real-time symmetry operations.
+**🎮 [Try the Interactive Demo](https://cocuco-co.github.io/c17/)** - Explore the 17 wallpaper groups with real-time symmetry operations.
 
 Features:
 - Apply rotations (C₂, C₃, C₄, C₆), reflections (σᵥ, σₕ), glides, and translations
@@ -211,7 +211,7 @@ Features:
 | [Architecture](docs/ARCHITECTURE.md) | System design, models, data flow |
 | [API Reference](docs/API_REFERENCE.md) | Scripts and modules |
 | [Wallpaper Groups Guide](docs/Wallpaper_Groups_Guide_executed.ipynb) | Mathematical foundations (interactive notebook with visualizations) |
-| [Interactive App](https://khabalghoul.github.io/c17/) | Web-based symmetry explorer |
+| [Interactive App](https://cocuco-co.github.io/c17/) | Web-based symmetry explorer |
 
 ---
 
